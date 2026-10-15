@@ -1,0 +1,4 @@
+RMS V14.4 FIX77 - TASK DELETE ONLY
+Baseline: locked FIX76.
+Only added Hapus to DIBERIKAN (TO_DO/REVISION) and DIKERJAKAN (ON_PROGRESS).
+No other module or Task workflow intentionally changed.

@@ -1,0 +1,24 @@
+RMS RUMSY — SVELTEKIT FRONTEND / EXISTING CLOUDFLARE BACKEND
+
+Build dari root project:
+  bun install
+  bun run check
+  bun test
+  bun run build
+
+Upload ISI folder web/build ke project Cloudflare Pages RMS yang sudah ada.
+Jangan upload root repository, tests, atau baseline sebagai aplikasi baru.
+
+Backend _worker.js disalin identik ke web/build/_worker.js oleh script packaging.
+URL internal /#/... dan portal /client.html?token=... tetap didukung.
+
+Pertahankan binding dan secret dari deployment lama:
+  DB -> rms-rumsy
+  FILES -> rms-private
+  RESEND_API_KEY, EMAIL_FROM, RMS_URL
+
+Tidak ada SQL baru, reset D1, salinan data, atau bucket R2 baru yang diperlukan.
+Tidak ada deployment otomatis yang dijalankan oleh migrasi lokal ini.
+
+Petunjuk development, proxy API, pengujian dan batas migrasi ada di README.md
+dan MIGRATION.md. Paket asli disimpan di baseline/original/.

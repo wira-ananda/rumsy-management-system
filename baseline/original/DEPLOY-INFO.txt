@@ -1,0 +1,29 @@
+RMS RUMSY — DIRECT UPLOAD V9
+
+V9 MELANJUTKAN SEMUA FITUR V8 DAN MENAMBAHKAN EMAIL CENTER.
+
+EMAIL NOTIFICATION CENTER
+- Menu baru: SYSTEM > Email Notification.
+- Menampilkan status konfigurasi provider email tanpa membuka secret/API key.
+- Tombol kirim email tes langsung dari RMS.
+- Email Task menggunakan template HTML profesional RMS Rumsy.
+- Notifikasi otomatis: Task Assigned, Submitted for Review, Approved, Revision.
+- Penerima diambil langsung dari email akun user yang dipilih pada dropdown PIC/reviewer.
+- API key disimpan sebagai Cloudflare Secret, tidak di D1 dan tidak di frontend.
+
+DEPLOY
+Cloudflare Pages > rms-rumsy-app > Deployments > Create deployment > upload ZIP V9.
+Tidak perlu membuat ulang D1/R2 dan tidak perlu SQL baru.
+
+Bindings tetap:
+DB -> rms-rumsy
+FILES -> rms-private
+
+Agar email benar-benar terkirim, setelah V9 di-upload tambahkan di Cloudflare Pages Settings > Variables and Secrets:
+RESEND_API_KEY = API key Resend (Secret)
+EMAIL_FROM = RMS Rumsy <alamat pengirim terverifikasi>
+RMS_URL = https://rms-rumsy-app.pages.dev
+
+Setelah variable disimpan, redeploy satu kali. Kemudian tes dari SYSTEM > Email Notification.
+
+Catatan keamanan: credential email tidak dapat dibundel di ZIP karena akan membuat API key dapat dibaca publik. Karena itu credential harus dimasukkan satu kali sebagai Secret di dashboard Cloudflare.

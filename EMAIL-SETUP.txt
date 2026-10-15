@@ -1,0 +1,37 @@
+RMS V9 — PENGIRIMAN EMAIL OTOMATIS
+
+V9 sudah memiliki engine pengiriman email di backend Cloudflare Worker dan halaman kontrol di:
+SYSTEM > Email Notification
+
+Email otomatis dikirim saat:
+- ASSIGNED: tugas diberikan ke PIC.
+- SUBMITTED: PIC mengajukan tugas selesai ke atasan/reviewer.
+- APPROVED: atasan/reviewer menyetujui tugas.
+- REVISION: tugas dikembalikan untuk dikerjakan ulang beserta catatan reviewer.
+
+FORMAT EMAIL
+- Template HTML RMS Rumsy.
+- Menampilkan judul tugas, project, deskripsi, tanggal mulai, target selesai, reviewer, dan catatan reviewer.
+- Tombol "Buka RMS & Lihat Tugas" mengarah ke RMS.
+
+KONFIGURASI SEKALI SAJA DI CLOUDFLARE
+1. Buat/siapkan akun Resend.
+2. Verifikasi domain/alamat pengirim di Resend dan buat API key.
+3. Cloudflare > Workers & Pages > rms-rumsy-app > Settings > Variables and Secrets.
+4. Tambahkan:
+   RESEND_API_KEY = API key Resend              [Secret]
+   EMAIL_FROM = RMS Rumsy <rms@domain-anda>    [Variable]
+   RMS_URL = https://rms-rumsy-app.pages.dev   [Variable]
+5. Simpan lalu redeploy V9 satu kali.
+6. Login RMS sebagai Super Admin/Admin General.
+7. Buka SYSTEM > Email Notification.
+8. Status harus AKTIF.
+9. Isi email tujuan lalu klik "Kirim Email Tes".
+
+KEAMANAN
+- API key tidak pernah dikirim ke browser.
+- API key tidak disimpan di D1/app_state.
+- Endpoint status hanya memberi tahu apakah secret sudah terpasang, bukan isi secret.
+- Test email hanya dapat dijalankan oleh Admin General atau Super Admin.
+
+Jika status EMAIL_NOT_CONFIGURED, berarti RESEND_API_KEY atau EMAIL_FROM belum diisi.
