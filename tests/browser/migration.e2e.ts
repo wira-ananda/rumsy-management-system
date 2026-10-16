@@ -15,8 +15,8 @@ const photo = (name = "migration.png") => ({
   mimeType: "image/png",
   buffer: image,
 });
-async function login(page: Page, account = "super_admin") {
-  await page.goto("/");
+async function login(page: Page, account = "super_admin", url = "/") {
+  await page.goto(url);
   await page.locator("#loginEmail").fill(account + "@local.test");
   await page.locator("#loginPassword").fill("local-test-password");
   await page.locator("#loginForm button").click();
@@ -27,7 +27,17 @@ async function goto(page: Page, route: string) {
   await expect(page.locator("#view h1").first()).toBeVisible();
 }
 async function browserJSON(page: Page, path: string) {
-  return page.evaluate(async (url) => (await fetch(url)).json(), path);
+  return page.evaluate(async (url) => {
+    const refreshed = await fetch("/api/auth/refresh", {
+      method: "POST",
+      headers: { "x-rms-refresh": "1" },
+      body: "{}",
+    });
+    const { accessToken } = await refreshed.json();
+    return (
+      await fetch(url, { headers: { authorization: `Bearer ${accessToken}` } })
+    ).json();
+  }, path);
 }
 async function state(page: Page) {
   return (await browserJSON(page, "/api/state")).data;
@@ -142,6 +152,14 @@ test("file uploads, payment verification, project documents and report photos wo
   const row = page.locator("#projectTab tr").filter({ hasText: "123.456" });
   await row.locator(".verifyPay").click();
   await expect(row).toContainText("VERIFIED");
+  await row.locator(".proofBtn").click();
+  const downloading = page.waitForEvent("download");
+  await page
+    .locator("#modalBg")
+    .getByRole("link", { name: "Download", exact: true })
+    .click();
+  expect((await downloading).suggestedFilename()).toBe("proof-migration.png");
+  await page.locator("#modalClose").click();
   await goto(page, `projects/${projectId}/document`);
   await page.locator("[data-doc=akad]").click();
   await page
@@ -152,6 +170,11 @@ test("file uploads, payment verification, project documents and report photos wo
   await expect(page.locator("[data-doc=akad]")).toContainText(
     "Tekan untuk buka dokumen",
   );
+  const opening = page.waitForEvent("popup");
+  await page.locator("[data-doc=akad]").click();
+  const preview = await opening;
+  await expect.poll(() => preview.url()).toMatch(/^blob:/);
+  await preview.close();
   await goto(page, `projects/${projectId}/progress-report`);
   await page.locator("#addDaily").click();
   await page
@@ -168,6 +191,17 @@ test("file uploads, payment verification, project documents and report photos wo
       .filter({ hasText: "Pekerjaan baru setelah migrasi" })
       .locator("img"),
   ).toHaveCount(3);
+  await expect
+    .poll(() =>
+      page
+        .locator(".report-item")
+        .filter({ hasText: "Pekerjaan baru setelah migrasi" })
+        .locator("img")
+        .evaluateAll((images) =>
+          images.every((image) => (image as HTMLImageElement).naturalWidth > 0),
+        ),
+    )
+    .toBe(true);
   const saved = (await state(page)).projects.find(
     (item: any) => item.id === projectId,
   );
@@ -182,7 +216,80 @@ test("file uploads, payment verification, project documents and report photos wo
   expect(saved.progressDaily[0].photos).toHaveLength(3);
 });
 
-test("task assignment, PIC submission and reviewer approval use the original Worker", async ({
+test("address-bar data URLs reject a logged-in browser while app refresh and Bearer keep working", async ({
+  page,
+  context,
+}) => {
+  await login(page);
+  expect(
+    (await context.cookies()).some(
+      (cookie) => cookie.name === "rms_session" && cookie.httpOnly,
+    ),
+  ).toBe(true);
+  const status = await page.evaluate(async () => {
+    const paths = [
+      "/api/directory/users",
+      "/api/directory/sales",
+      "/api/state",
+      "/api/files/test-photo-1",
+    ];
+    return Promise.all(
+      paths.map(async (path) => ({ path, status: (await fetch(path)).status })),
+    );
+  });
+  expect(status.every((result) => result.status === 401)).toBe(true);
+  const direct = await context.newPage();
+  const response = await direct.goto("/api/directory/users");
+  expect(response?.status()).toBe(401);
+  expect(await response?.json()).toEqual({ error: "UNAUTHENTICATED" });
+  await direct.close();
+  await page.reload();
+  await expect(page.locator("#userMenu")).toContainText("Super Admin");
+  expect(
+    await page.evaluate(() => ({
+      local: { ...localStorage },
+      session: Object.fromEntries(
+        Object.entries(sessionStorage).filter(
+          ([key]) => !["sveltekit:scroll", "sveltekit:snapshot"].includes(key),
+        ),
+      ),
+    })),
+  ).toEqual({ local: {}, session: {} });
+  const appResponse = await browserJSON(page, "/api/directory/users");
+  expect(appResponse.users.length).toBeGreaterThan(0);
+  await page.locator("#logout").click();
+  await expect(page.locator("#loginForm")).toBeVisible();
+  await page.reload();
+  await expect(page.locator("#loginForm")).toBeVisible();
+});
+
+test("Vite proxy keeps browser login working and rejects foreign authentication Origins", async ({
+  page,
+  request,
+}) => {
+  await login(page, "super_admin", "http://127.0.0.1:4176/");
+  await page.reload();
+  await expect(page.locator("#userMenu")).toContainText("Super Admin");
+  for (const origin of ["https://evil.test", "null"]) {
+    const response = await request.post(
+      "http://127.0.0.1:4176/api/auth/login",
+      {
+        headers: { origin },
+        data: {
+          email: "super_admin@local.test",
+          password: "local-test-password",
+        },
+      },
+    );
+    expect(response.status()).toBe(403);
+  }
+  const cookieOnly = await page.evaluate(
+    async () => (await fetch("/api/directory/users")).status,
+  );
+  expect(cookieOnly).toBe(401);
+});
+
+test("task assignment, PIC submission and reviewer approval keep the API contract on Hono", async ({
   page,
 }) => {
   await login(page);

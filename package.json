@@ -2,15 +2,20 @@
   "name": "rms-rumsy",
   "private": true,
   "type": "module",
-  "workspaces": ["web"],
+  "workspaces": [
+    "web",
+    "api"
+  ],
   "scripts": {
     "dev": "bun run --cwd web dev",
     "build": "bun run --cwd web build",
     "preview": "bun run --cwd web preview",
-    "check": "bun run --cwd web check",
-    "test": "node --test tests/*.test.mjs",
+    "check": "bun run --cwd api check && bun run --cwd web check",
+    "test": "bun run build:api && node --test tests/*.test.mjs",
     "test:e2e": "playwright test",
-    "test:api": "node tests/mock-api.mjs"
+    "test:api": "bun run build:api && node tests/mock-api.mjs",
+    "build:api": "bun run --cwd api build",
+    "dev:api": "bun run --cwd api dev"
   },
   "devDependencies": {
     "@playwright/test": "1.56.1",

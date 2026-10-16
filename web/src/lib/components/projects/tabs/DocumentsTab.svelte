@@ -1,7 +1,8 @@
 <script lang="ts">
   import { runtime } from "../../../stores/runtime.js";
   import { documentPresets } from "../../../constants/catalog.js";
-  import { fileUrl } from "../../../services/api.js";
+  import { openPrivateFile } from "../../../services/private-file.js";
+  import FileLink from "../../shared/FileLink.svelte";
   import {
     documentForm,
     deleteDocument,
@@ -47,7 +48,10 @@
         data-doc={preset.key}
         data-file={document?.fileId || ""}
         onclick={() => {
-          if (document) window.open(fileUrl(document.fileId), "_blank");
+          if (document)
+            void openPrivateFile(document.fileId, false, document.name).catch(
+              (error) => alert(error.message),
+            );
           else if (canEdit) documentForm(project, preset);
         }}
         ><span class="doc-choice-icon">{document ? "✓" : "＋"}</span><b
@@ -82,11 +86,10 @@
             </div>
           </div>
           <div class="action-row">
-            {#if document.fileId}<a
+            {#if document.fileId}<FileLink
                 class="btn ghost small"
-                target="_blank"
-                rel="noreferrer"
-                href={fileUrl(document.fileId)}>Buka</a
+                fileId={document.fileId}
+                filename={document.name}>Buka</FileLink
               >{/if}{#if canEdit}<button
                 class="btn ghost small editDoc"
                 onclick={() => documentForm(project, null, document)}

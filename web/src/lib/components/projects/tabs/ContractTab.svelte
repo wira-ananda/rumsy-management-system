@@ -5,7 +5,8 @@
   import { runtime } from "../../../stores/runtime.js";
   import { TODAY } from "../../../constants/catalog.js";
   import { contractForm } from "../../../features/projects/actions";
-  import { save, fileUrl } from "../../../services/api.js";
+  import { save } from "../../../services/api.js";
+  import FileLink from "../../shared/FileLink.svelte";
   import { addProjectActivity, addAudit } from "../../../domain/models.js";
   import { syncPipelineForProject } from "../../../domain/pipeline.js";
   import { addProjectChat } from "../../../services/chat.js";
@@ -88,12 +89,10 @@
         <div>
           <b>{document.type}</b>
           <div class="tiny muted">
-            {#if document.fileId}<a
-                class="link"
-                target="_blank"
-                rel="noreferrer"
-                href={fileUrl(document.fileId)}
-                >{document.name || "Lihat file"}</a
+            {#if document.fileId}<FileLink
+                fileId={document.fileId}
+                filename={document.name}
+                >{document.name || "Lihat file"}</FileLink
               >{:else}{document.name || "Belum ada file"}{/if}
           </div>
         </div>

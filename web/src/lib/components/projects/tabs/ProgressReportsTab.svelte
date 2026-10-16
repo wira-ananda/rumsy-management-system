@@ -6,7 +6,8 @@
     progressForm,
     deleteProgress,
   } from "../../../features/projects/documents";
-  import { fileUrl } from "../../../services/api.js";
+  import FileLink from "../../shared/FileLink.svelte";
+  import PrivateImage from "../../shared/PrivateImage.svelte";
   import { date } from "../../../utils/format.js";
   let { project }: { project: any } = $props();
   let canEdit = $derived(
@@ -69,22 +70,20 @@
             {#if report.photos?.length || report.fileId}<div
                 class="progress-photo-preview"
               >
-                {#each report.photos || [{ id: report.fileId, name: report.fileName }] as photo}<a
-                    href={fileUrl(photo.id || photo.fileId)}
-                    target="_blank"
-                    rel="noreferrer"
-                    ><img
+                {#each report.photos || [{ id: report.fileId, name: report.fileName }] as photo}<FileLink
+                    fileId={photo.id || photo.fileId}
+                    filename={photo.name || ""}
+                    ><PrivateImage
                       class="progress-photo-thumb"
-                      src={fileUrl(photo.id || photo.fileId)}
+                      fileId={photo.id || photo.fileId}
                       alt="Foto Progress"
-                      loading="lazy"
-                    /></a
-                  >{/each}<a
+                    /></FileLink
+                  >{/each}
+                <FileLink
                   class="btn ghost small"
-                  target="_blank"
-                  rel="noreferrer"
-                  href={fileUrl(report.photos?.[0]?.id || report.fileId)}
-                  >Buka Foto</a
+                  fileId={report.photos?.[0]?.id || report.fileId}
+                  filename={report.photos?.[0]?.name || report.fileName || ""}
+                  >Buka Foto</FileLink
                 >
               </div>{/if}{#if canEdit}<button
                 class="btn ghost small editProgress"

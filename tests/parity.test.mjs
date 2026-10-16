@@ -175,13 +175,14 @@ function snapshot(view, nodes) {
   };
 }
 
-test("backend and styles remain byte-identical to the original package", async () => {
+import { acceptAuthentication } from "../web/src/lib/services/auth-token.js";
+test("baseline backend archive and active styles remain byte-identical", async () => {
   const checksums = JSON.parse(
     await readFile(resolve(root, "baseline/checksums.json"), "utf8"),
   );
   const digest = (buffer) => createHash("sha256").update(buffer).digest("hex");
   assert.equal(
-    digest(await readFile(resolve(root, "_worker.js"))),
+    digest(await readFile(resolve(root, "baseline/original/_worker.js"))),
     checksums["_worker.js"],
   );
   assert.equal(
@@ -269,6 +270,11 @@ test("whole-state saves keep the same payload and version contract", async () =>
   reset();
   runtime.data.unknownExistingRecord = { nested: ["do not migrate"] };
   const before = clone(runtime.data);
+  acceptAuthentication({
+    accessToken: "unit-test-token",
+    tokenType: "Bearer",
+    expiresIn: 900,
+  });
   let call;
   globalThis.fetch = async (path, options) => {
     call = { path, options };

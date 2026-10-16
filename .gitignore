@@ -8,3 +8,6 @@ test-results/
 !.env.example
 !web/.env.example
 .DS_Store
+
+api/build/
+*.zip

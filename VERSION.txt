@@ -1,4 +1,9 @@
-RMS V14.4 FIX77 - TASK DELETE ONLY
-Baseline: locked FIX76.
-Only added Hapus to DIBERIKAN (TO_DO/REVISION) and DIKERJAKAN (ON_PROGRESS).
-No other module or Task workflow intentionally changed.
+RMS V14.4 FIX77 — SVELTEKIT + HONO MIGRATION
+Frontend: SvelteKit/Svelte 5, migrated 2026-10-15.
+Backend: Hono/TypeScript, migrated 2026-10-16.
+Source: web/src/ and api/src/; Cloudflare bundle: web/build/_worker.js.
+Business JSON/API contracts, D1/R2 schema and business rules retained.
+Internal APIs require short-lived Bearer tokens; HttpOnly cookie is refresh-only.
+Bearer update: 2026-10-16. Frontend and backend must be deployed together.
+Original FIX77 package and version notes: baseline/original/.
+See MIGRATION.md for verification and known limitations.

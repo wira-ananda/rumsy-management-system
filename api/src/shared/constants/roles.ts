@@ -1,0 +1,55 @@
+export const ROLES = new Set([
+  "OWNER",
+  "HEAD_BU",
+  "MANAGER_OPERASIONAL",
+  "MANAGER_SALES",
+  "MANAGER_QC",
+  "ADMIN_GENERAL",
+  "SALES_EXECUTIVE",
+  "ADMIN_CRM",
+  "QC_TEKNIS",
+  "HOLDING_FINANCE",
+  "HOLDING_PURCHASING",
+  "HOLDING_HRD",
+  "HOLDING_LEGAL",
+  "HOLDING_ARDA",
+  "SUPER_ADMIN",
+]);
+export const PAYMENT_UPLOAD = new Set([
+  "MANAGER_SALES",
+  "ADMIN_GENERAL",
+  "SALES_EXECUTIVE",
+  "ADMIN_CRM",
+  "HOLDING_FINANCE",
+  "SUPER_ADMIN",
+  "HEAD_BU",
+]);
+export const FINANCE_VERIFY = new Set(["HOLDING_FINANCE", "SUPER_ADMIN"]);
+export const SETTINGS_EDIT = new Set(["ADMIN_GENERAL", "SUPER_ADMIN"]);
+export const CONTRACT_SIGN = new Set(["HEAD_BU", "SUPER_ADMIN"]);
+export const PROJECT_START = new Set([
+  "HEAD_BU",
+  "MANAGER_OPERASIONAL",
+  "SUPER_ADMIN",
+]);
+export const HANDOVER_REVIEW = new Set(["MANAGER_OPERASIONAL", "SUPER_ADMIN"]);
+export const COMPLETION_APPROVE = new Set([
+  "HEAD_BU",
+  "MANAGER_OPERASIONAL",
+  "SUPER_ADMIN",
+]);
+export const ADDENDUM_APPROVE = new Set(["HEAD_BU", "SUPER_ADMIN"]);
+export const QC_EDIT = new Set([
+  "HEAD_BU",
+  "MANAGER_OPERASIONAL",
+  "MANAGER_QC",
+  "QC_TEKNIS",
+  "SUPER_ADMIN",
+]);
+export const ESCALATION_EDIT = new Set(["MANAGER_QC", "OWNER", "SUPER_ADMIN"]);
+export const FILE_DELETE = new Set([
+  "HEAD_BU",
+  "MANAGER_OPERASIONAL",
+  "ADMIN_GENERAL",
+  "SUPER_ADMIN",
+]);

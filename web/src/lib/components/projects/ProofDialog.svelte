@@ -1,7 +1,7 @@
 <script lang="ts">
   import Info from "../shared/Info.svelte";
   import Badge from "../shared/Badge.svelte";
-  import { fileUrl } from "../../services/api.js";
+  import FileLink from "../shared/FileLink.svelte";
   import { money, date } from "../../utils/format.js";
   let { transaction }: { transaction: any } = $props();
 </script>
@@ -10,13 +10,16 @@
     <b>File:</b>
     {transaction.proofName}
     <div class="action-row mt">
-      <a
+      <FileLink
         class="btn primary"
-        href={fileUrl(transaction.proofFileId)}
-        target="_blank"
-        rel="noreferrer">Lihat Bukti</a
-      ><a class="btn ghost" href={fileUrl(transaction.proofFileId, true)}
-        >Download</a
+        fileId={transaction.proofFileId}
+        filename={transaction.proofName}>Lihat Bukti</FileLink
+      >
+      <FileLink
+        class="btn ghost"
+        fileId={transaction.proofFileId}
+        filename={transaction.proofName}
+        download>Download</FileLink
       >
     </div>
   </div>{:else}<div class="notice warn">

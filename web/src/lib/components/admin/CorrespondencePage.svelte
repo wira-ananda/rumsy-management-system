@@ -4,7 +4,7 @@
   import Badge from "../shared/Badge.svelte";
   import { runtime } from "../../stores/runtime.js";
   import { TODAY } from "../../constants/catalog.js";
-  import { fileUrl } from "../../services/api.js";
+  import FileLink from "../shared/FileLink.svelte";
   import { letterForm, deleteLetter } from "../../features/admin/actions";
   import { date } from "../../utils/format.js";
   let search = $state(""),
@@ -110,11 +110,10 @@
                   href={`#/projects/${item.projectId}`}>{item.projectId}</a
                 >{:else}-{/if}</td
             ><td
-              >{#if item.fileId}<a
+              >{#if item.fileId}<FileLink
                   class="btn ghost small"
-                  target="_blank"
-                  rel="noreferrer"
-                  href={fileUrl(item.fileId)}>Lihat</a
+                  fileId={item.fileId}
+                  filename={item.fileName || ""}>Lihat</FileLink
                 >{:else}-{/if}</td
             ><td
               >{#if canEdit}<div class="action-row">

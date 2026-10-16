@@ -1,5 +1,6 @@
 <script lang="ts">
-  import { save, uploadFile, fileUrl } from "../../services/api.js";
+  import { save, uploadFile } from "../../services/api.js";
+  import FileLink from "./FileLink.svelte";
   import { addLeadChat, addProjectChat } from "../../services/chat.js";
   import { addAudit, addProjectActivity } from "../../domain/models.js";
   import { currentActor } from "../../access/permissions.js";
@@ -75,11 +76,9 @@
         </div>
         <div>{chat.text}</div>
         {#if chat.attachment}<div class="chat-attachment">
-            📎 {#if chat.attachmentFileId}<a
-                class="link"
-                target="_blank"
-                href={fileUrl(chat.attachmentFileId)}
-                rel="noreferrer">{chat.attachment}</a
+            📎 {#if chat.attachmentFileId}<FileLink
+                fileId={chat.attachmentFileId}
+                filename={chat.attachment}>{chat.attachment}</FileLink
               >{:else}{chat.attachment}{/if}
           </div>{/if}
       </div>{:else}<div class="empty">Belum ada pesan.</div>{/each}

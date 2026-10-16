@@ -1,6 +1,7 @@
 import { apiCall, fetchState } from "./api.js";
 import { runtime } from "../stores/runtime.js";
 import type { Session } from "../types/rms";
+import { acceptAuthentication, clearAccessToken } from "./auth-token.js";
 
 type BackendUser = Omit<Session, "scopeName"> & { scopeName?: string };
 function setSession(user: BackendUser): Session {
@@ -40,10 +41,12 @@ export async function authenticate(
   email: string,
   password: string,
 ): Promise<Session> {
+  clearAccessToken();
   const response = await apiCall("/api/auth/login", {
     method: "POST",
     body: JSON.stringify({ email: email.trim(), password }),
   });
+  acceptAuthentication(response);
   setSession(response.user);
   await loadDirectories();
   await fetchState();
@@ -53,6 +56,9 @@ export async function logout(): Promise<void> {
   try {
     await apiCall("/api/auth/logout", { method: "POST", body: "{}" });
   } catch {}
+  clearAccessToken();
   runtime.session = null;
   runtime.data = null;
+  runtime.salesDirectory = [];
+  runtime.userDirectory = [];
 }

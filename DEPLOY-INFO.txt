@@ -1,4 +1,4 @@
-RMS RUMSY — SVELTEKIT FRONTEND / EXISTING CLOUDFLARE BACKEND
+RMS RUMSY — SVELTEKIT FRONTEND / HONO CLOUDFLARE BACKEND
 
 Build dari root project:
   bun install
@@ -9,13 +9,25 @@ Build dari root project:
 Upload ISI folder web/build ke project Cloudflare Pages RMS yang sudah ada.
 Jangan upload root repository, tests, atau baseline sebagai aplikasi baru.
 
-Backend _worker.js disalin identik ke web/build/_worker.js oleh script packaging.
+Sumber backend ada di api/src/, dengan modul route/service/schema seperti SAFAR.
+Build membundel Hono menjadi api/build/_worker.js lalu menyalinnya ke
+web/build/_worker.js. Jangan mengedit file bundle hasil build.
 URL internal /#/... dan portal /client.html?token=... tetap didukung.
+
+Paket sekarang mencakup autentikasi Bearer. Deploy frontend dan backend bersama;
+frontend baru tidak dapat memakai backend cookie-only versi lama.
+Cookie hanya untuk refresh; data internal wajib Authorization: Bearer <token>.
+Membuka URL data langsung di address bar akan menghasilkan 401 setelah deploy.
 
 Pertahankan binding dan secret dari deployment lama:
   DB -> rms-rumsy
   FILES -> rms-private
   RESEND_API_KEY, EMAIL_FROM, RMS_URL
+
+Production dan Preview memiliki konfigurasi binding/secret terpisah.
+Preview kosong tidak otomatis memakai binding Production.
+Error reading 'prepare' menandakan binding DB tidak tersedia pada environment itu.
+Preview dengan binding produksi dapat menulis ke data produksi.
 
 Tidak ada SQL baru, reset D1, salinan data, atau bucket R2 baru yang diperlukan.
 Tidak ada deployment otomatis yang dijalankan oleh migrasi lokal ini.
