@@ -4,15 +4,21 @@
   "version": "14.4.77",
   "type": "module",
   "scripts": {
-    "build": "bun ../scripts/build-api.mjs",
+    "build": "bun run db:generate && bun ../scripts/build-api.mjs",
     "check": "tsc --noEmit",
-    "dev": "bun run build && node ../tests/mock-api.mjs"
+    "dev": "bun run build && node --import ../tests/helpers/register-wasm.mjs ../tests/mock-api.mjs",
+    "db:generate": "prisma generate && bun ../scripts/database/generate-meta.mjs"
   },
   "dependencies": {
+    "@prisma/client": "7.8.0",
+    "@prisma/adapter-d1": "7.8.0",
     "hono": "4.13.13"
   },
   "devDependencies": {
+    "prisma": "7.8.0",
+    "@prisma/internals": "7.8.0",
     "@cloudflare/workers-types": "5.20261016.1",
-    "typescript": "6.0.3"
+    "typescript": "6.0.3",
+    "wrangler": "4.151.0"
   }
 }

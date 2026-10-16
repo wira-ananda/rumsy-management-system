@@ -6,6 +6,8 @@ export interface Bindings {
   RESEND_API_KEY?: string;
   EMAIL_FROM?: string;
   RMS_URL?: string;
+  RMS_STORAGE?: "legacy" | "normalized";
+  RMS_MAINTENANCE?: "0" | "1";
 }
 export interface ApiEnv {
   Bindings: Bindings;

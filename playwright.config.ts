@@ -18,7 +18,7 @@ export default defineConfig({
   webServer: [
     {
       command:
-        "bun run build && RMS_TEST_STATIC_ROOT=web/build RMS_TEST_PORT=4175 node tests/mock-api.mjs",
+        "bun run build && RMS_TEST_STORAGE=normalized RMS_TEST_STATIC_ROOT=web/build RMS_TEST_PORT=4175 node --import ./tests/helpers/register-wasm.mjs tests/mock-api.mjs",
       url: "http://127.0.0.1:4175/api/health",
       reuseExistingServer: false,
     },

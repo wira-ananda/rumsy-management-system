@@ -1,6 +1,6 @@
 # RMS API — Hono
 
-Backend Cloudflare dengan Hono dan TypeScript. Struktur mengikuti `safar-compro/api`: registrasi aplikasi, modul route/service/schema, serta helper bersama. Storage tetap D1 dan R2, dengan tabel dan data RMS yang sudah ada.
+Backend Cloudflare dengan Hono dan TypeScript. Struktur mengikuti `safar-compro/api`: registrasi aplikasi, modul route/service/schema, serta helper bersama. Storage tetap D1 dan R2. Model bisnis Prisma baru sudah disiapkan dengan migrasi lokal tanpa mengubah produksi. Lihat [DATABASE-MIGRATION.md](../DATABASE-MIGRATION.md).
 
 ```text
 src/
@@ -10,7 +10,8 @@ src/
 │   ├── auth/                # Login, sesi, logout, password
 │   ├── user/                # Admin user
 │   ├── directory/           # Direktori user dan sales
-│   ├── state/               # Snapshot JSON, versi, izin perubahan
+│   ├── state/               # Kontrak snapshot, versi, izin perubahan
+│   ├── storage/             # Pemetaan tabel Prisma dan simpan atomik D1
 │   ├── pipeline/            # Service internal perhitungan stage
 │   ├── file/                # Upload/download/delete D1 + R2
 │   ├── client/              # Portal publik dengan token project
@@ -76,8 +77,10 @@ Membuka URL data di address bar tetap menghasilkan `401`, karena navigasi tidak 
 | `RESEND_API_KEY` | Secret, opsional | Konfigurasi email yang sudah ada |
 | `EMAIL_FROM` | Variable, opsional | Pengirim email |
 | `RMS_URL` | Variable, opsional | URL aplikasi untuk link email |
+| `RMS_STORAGE` | Variable, opsional | `legacy` (default) atau `normalized` setelah cutover terverifikasi |
+| `RMS_MAINTENANCE` | Variable, opsional | `1` menolak request API mutasi termasuk login/refresh; kosong/`0` normal |
 
-Tidak ada database URL, migrasi SQL, seed produksi atau credentials yang ditanam dalam bundle. Production dan Preview mempunyai binding/secret masing-masing. Koneksi ke binding produksi berarti perubahan API tersimpan ke data produksi.
+Tidak ada database URL, data migrasi SQL, seed produksi atau credentials yang ditanam dalam bundle. Schema SQL untuk storage baru berada di `prisma/migrations/` dan diterapkan terpisah, bukan saat request. Production dan Preview mempunyai binding/secret masing-masing. Koneksi ke binding produksi berarti perubahan API tersimpan ke data produksi.
 
 ## Lokal, build dan pengujian
 
@@ -102,7 +105,7 @@ bun run build      # API + Svelte -> web/build/ siap untuk Pages
 bun run test:e2e   # Paket build melalui Hono, memakai D1/R2 di memori
 ```
 
-Hasil `_worker.js` merupakan bundle Hono mandiri; tidak perlu upload `node_modules` atau source TypeScript. Folder `baseline/original/` hanya arsip pembanding. Lihat `../DEPLOY-INFO.txt` untuk deployment Pages yang sama.
+Hasil `web/build/_worker.js/` merupakan direktori modul Hono + Prisma beserta WASM; tidak perlu upload `node_modules` atau source TypeScript. Folder `baseline/original/` hanya arsip pembanding. Lihat `../DEPLOY-INFO.txt` untuk deployment Pages yang sama.
 
 Migrasi ini mempertahankan perilaku backend awal, termasuk keterbatasan scope state/file dan guard bisnis yang tercatat dalam `../MIGRATION.md`. Penggantian framework tidak otomatis memperbaiki otorisasi lama.
 

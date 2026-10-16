@@ -4,7 +4,12 @@ import { json } from "../../shared/utils/api-response";
 import { publicProject } from "./client.serializer";
 import { clientTokenValid } from "./client.schema";
 import { fileService } from "../file/file.service";
+import {
+  normalized,
+  normalizedPortalProject,
+} from "../storage/storage.service";
 const findProject = async (env: Bindings, token: string) => {
+  if (normalized(env)) return normalizedPortalProject(env, token);
   const row = (await queryFirst<{ data: string }>(
     env,
     "SELECT data FROM app_state WHERE id=1",

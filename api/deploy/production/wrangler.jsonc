@@ -1,0 +1,25 @@
+{
+  "name": "rms-rumsy-app",
+  "pages_build_output_dir": "../../../web/build",
+  "compatibility_date": "2026-10-16",
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "rms-rumsy",
+      "database_id": "37aa92aa-d270-4928-89ea-ca949268ac36",
+    },
+  ],
+  "r2_buckets": [
+    {
+      "binding": "FILES",
+      "bucket_name": "rms-private",
+    },
+  ],
+  "vars": {
+    "RMS_STORAGE": "normalized",
+    "RMS_MAINTENANCE": "0",
+    "RMS_URL": "https://rms-rumsy-app.pages.dev",
+    "EMAIL_FROM": "RMS Rumsy <rms@domainanda.com>",
+  },
+  "$schema": "../../node_modules/wrangler/config-schema.json",
+}

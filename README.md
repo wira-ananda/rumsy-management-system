@@ -47,7 +47,9 @@ rms-rumsy/
 
 Contoh: panduan berada di `web/src/lib/components/management/GuidePage.svelte`; tampilan Project ada di `components/projects/tabs/`. File JS/TS digunakan untuk data, aturan bisnis dan transport. Template HTML-string dan controller DOM lama sudah dihapus dari `web/src`; tidak ada `innerHTML`, `{@html}`, atau `FeatureView` pada frontend aktif. Form memakai binding dan event Svelte melalui `FormDialog.svelte` atau komponen khusus.
 
-Contoh backend: endpoint login ada di `api/src/modules/auth/auth.route.ts`, logika dan query di `auth.service.ts`, parsing input di `auth.schema.ts`. Hono menangani routing dan middleware; tidak ada penerusan ke router Worker lama. Lihat `api/README.md` untuk daftar endpoint dan binding. Berbeda dari SAFAR, RMS tetap memakai D1/R2 dan token acak yang diperiksa di server; tidak beralih ke Prisma/PostgreSQL atau JWT.
+Contoh backend: endpoint login ada di `api/src/modules/auth/auth.route.ts`, logika dan query di `auth.service.ts`, parsing input di `auth.schema.ts`. Hono menangani routing dan middleware; tidak ada penerusan ke router Worker lama. Lihat `api/README.md` untuk daftar endpoint dan binding. Berbeda dari SAFAR, RMS tetap memakai D1/R2 dan token acak yang diperiksa di server; model bisnis baru memakai Prisma + adapter D1; tidak beralih ke PostgreSQL atau JWT. Lihat [DATABASE-MIGRATION.md](./DATABASE-MIGRATION.md) untuk migrasi tabel yang sudah diverifikasi lokal.
+
+Sejak 17 Oktober 2026, **https://rms-rumsy-app.pages.dev** memakai Svelte + Hono + Prisma dengan D1/R2 produksi yang tetap sama. **https://rms-rumsy-staging.pages.dev** menyimpan versi sebelum Prisma, memakai D1/R2 staging dan JSON legacy yang terpisah. Data bisnis kedua versi cocok saat perpindahan; perubahan sesudahnya tidak disinkronkan otomatis. Lihat [hasil perpindahan](./CUTOVER-RESULT.md) dan [STAGING.md](./STAGING.md).
 
 ## Akses API
 
@@ -94,13 +96,13 @@ bun run test
 bun run build
 ```
 
-Build membundel `api/src/index.ts` beserta Hono ke `api/build/_worker.js`, kemudian menyertakannya ke `web/build/_worker.js` bersama frontend Svelte. Cloudflare tetap menerima satu file Worker hasil build; sumber backend sehari-hari berada di `api/src/`.
+Build membundel Hono + Prisma ke `api/build/_worker.js` beserta WASM, kemudian mengemas direktori modul `web/build/_worker.js/`. Sumber tetap berada di `api/src/`; jangan edit bundle.
 
-Upload **isi** `web/build/` atau ZIP `rms-rumsy-svelte-upload.zip` yang disiapkan dari hasil build terbaru ke project Cloudflare Pages RMS yang sama. ZIP di root adalah hasil kemasan saat migrasi; setelah mengedit kode, build dan kemas ulang sebelum unggah. URL `/#/...` dan `/client.html?token=...` tetap tersedia. Baseline, seed pengujian dan test server tidak disertakan dalam paket produksi.
+**Prisma sudah aktif di produksi.** Deploy kode berikutnya dari root memakai `bun run deploy:production`; perintah memeriksa kode, membangun paket, memeriksa marker Prisma, lalu menargetkan `api/deploy/production/wrangler.jsonc`. `bun run deploy:staging` menargetkan konfigurasi staging terpisah dengan storage legacy. Deployment kode tidak otomatis menjalankan migrasi schema. ZIP upload lama merupakan arsip versi sebelum Prisma; jangan unggah ke produksi baru.
 
-Pertahankan binding `DB → rms-rumsy`, `FILES → rms-private` dan variable/secret email `RESEND_API_KEY`, `EMAIL_FROM`, `RMS_URL`. **Production dan Preview mempunyai konfigurasi terpisah.** Pilih environment yang sesuai saat upload dan periksa binding pada environment tersebut; Preview kosong tidak otomatis memakai konfigurasi Production. Binding D1 yang tidak tersedia menyebabkan error `reading 'prepare'`. Preview yang dihubungkan ke D1/R2 produksi juga dapat mengubah data produksi.
+Pertahankan binding `DB → rms-rumsy`, `FILES → rms-private` serta secret/variable email yang berlaku. Production dan Preview memiliki konfigurasi terpisah; Preview tidak otomatis mewarisi Production. `RMS_STORAGE=normalized` hanya diaktifkan setelah schema, data, dan marker migrasi diverifikasi. Tanpa flag tersebut, backend menggunakan penyimpanan JSON lama.
 
-Migrasi ini tidak memerlukan migrasi SQL atau penggantian database/bucket. Perubahan Hono ini belum dideploy otomatis.
+Untuk mencoba salinan data asli hasil migrasi, jalankan `bun run dev:data`, lalu pada terminal lain `RMS_API_ORIGIN=http://127.0.0.1:8790 bun dev`. Untuk melihat tabel salinan lokal, jalankan `bun run db:studio`.
 
 ## Pengujian
 

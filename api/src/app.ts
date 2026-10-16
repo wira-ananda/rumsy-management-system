@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import type { ApiEnv } from "./shared/env";
 import { json } from "./shared/utils/api-response";
 import { requireAuth } from "./shared/middlewares/require-auth";
+import { maintenance } from "./shared/middlewares/maintenance";
 import { authRoute } from "./modules/auth/auth.route";
 import { healthRoute } from "./modules/health/health.route";
 import { directoryRoute } from "./modules/directory/directory.route";
@@ -14,6 +15,7 @@ import {
   adminEmailRoute,
 } from "./modules/notification/notification.route";
 export const app = new Hono<ApiEnv>().basePath("/api");
+app.use("*", maintenance);
 app.use("*", requireAuth);
 // Hono dispatches HEAD through GET handlers; retain the legacy method contract.
 app.use("*", async (c, next) => {

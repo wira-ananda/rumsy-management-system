@@ -1,0 +1,917 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+  runtime  = "cloudflare"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model User {
+  id                   Int                 @id @default(autoincrement())
+  email                String              @unique(map: "sqlite_autoindex_users_1")
+  fullName             String              @map("full_name")
+  role                 String
+  scope_name           String?
+  password_hash        String
+  password_salt        String
+  password_iterations  Int                 @default(310000)
+  active               Int                 @default(1)
+  must_change_password Int                 @default(1)
+  created_at           String              @default(dbgenerated("CURRENT_TIMESTAMP"))
+  updated_at           String              @default(dbgenerated("CURRENT_TIMESTAMP"))
+  contracts            contracts[]
+  files                files[]
+  project_documents    project_documents[]
+  project_members      project_members[]
+  server_audit         server_audit[]
+  sessions             sessions[]
+  transactions         transactions[]
+
+  @@map("users")
+}
+
+model app_state {
+  id         Int    @id @default(autoincrement())
+  version    Int    @default(1)
+  data       String
+  updated_at String @default(dbgenerated("CURRENT_TIMESTAMP"))
+}
+
+model contracts {
+  id              Int      @id @default(autoincrement())
+  project_id      Int
+  contract_number String?
+  contract_type   String?  @default("Initial")
+  contract_value  Float?   @default(0)
+  dp_value        Float?   @default(0)
+  payment_method  String?
+  tenor           Int?     @default(0)
+  start_date      String?
+  end_date        String?
+  status          String?  @default("Active")
+  created_by      Int?
+  created_at      String?  @default(dbgenerated("CURRENT_TIMESTAMP"))
+  updated_at      String?  @default(dbgenerated("CURRENT_TIMESTAMP"))
+  users           User?    @relation(fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  projects        projects @relation(fields: [project_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model files {
+  id            String  @id
+  object_key    String  @unique(map: "sqlite_autoindex_files_2")
+  original_name String
+  content_type  String?
+  size          Int     @default(0)
+  entity_type   String?
+  entity_id     String?
+  uploaded_by   Int?
+  created_at    String  @default(dbgenerated("CURRENT_TIMESTAMP"))
+  users         User?   @relation(fields: [uploaded_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([entity_type, entity_id], map: "idx_files_entity")
+}
+
+model project_documents {
+  id                Int      @id @default(autoincrement())
+  project_id        Int
+  file_id           String?
+  document_category String
+  document_name     String
+  document_status   String?  @default("Draft")
+  revision          Int?     @default(0)
+  uploaded_by       Int?
+  created_at        String?  @default(dbgenerated("CURRENT_TIMESTAMP"))
+  updated_at        String?  @default(dbgenerated("CURRENT_TIMESTAMP"))
+  users             User?    @relation(fields: [uploaded_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  projects          projects @relation(fields: [project_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model project_members {
+  id         Int      @id @default(autoincrement())
+  project_id Int
+  user_id    Int
+  role       String
+  created_at String?  @default(dbgenerated("CURRENT_TIMESTAMP"))
+  users      User     @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  projects   projects @relation(fields: [project_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model projects {
+  id                Int                 @id @default(autoincrement())
+  project_code      String
+  project_name      String
+  client_name       String?
+  client_phone      String?
+  location          String?
+  business_unit     String?
+  project_type      String?
+  status            String?             @default("Planning")
+  start_date        String?
+  end_date          String?
+  created_by        Int?
+  created_at        String?             @default(dbgenerated("CURRENT_TIMESTAMP"))
+  updated_at        String?             @default(dbgenerated("CURRENT_TIMESTAMP"))
+  contracts         contracts[]
+  project_documents project_documents[]
+  project_members   project_members[]
+  transactions      transactions[]
+}
+
+model server_audit {
+  id         Int     @id @default(autoincrement())
+  user_id    Int?
+  action     String
+  detail     String?
+  ip         String?
+  created_at String  @default(dbgenerated("CURRENT_TIMESTAMP"))
+  users      User?   @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model sessions {
+  id         String @id
+  user_id    Int
+  token_hash String @unique(map: "sqlite_autoindex_sessions_2")
+  expires_at String
+  created_at String @default(dbgenerated("CURRENT_TIMESTAMP"))
+  users      User   @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([expires_at], map: "idx_sessions_exp")
+  @@index([token_hash], map: "idx_sessions_token")
+}
+
+model transactions {
+  id               Int      @id @default(autoincrement())
+  project_id       Int
+  transaction_type String
+  category         String?
+  description      String?
+  amount           Float?   @default(0)
+  transaction_date String?
+  payment_status   String?  @default("Pending")
+  created_by       Int?
+  created_at       String?  @default(dbgenerated("CURRENT_TIMESTAMP"))
+  users            User?    @relation(fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  projects         projects @relation(fields: [project_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+/// @rms {"collection":"clients","kind":"array"}
+model Client {
+  storageKey  String  @id
+  sortOrder   Int
+  legacyShape Json
+  extra       Json
+  id          String?
+  name        String?
+  phone       String?
+  email       String?
+  address     String?
+  notes       String?
+
+  @@index([sortOrder])
+  @@index([name])
+  @@map("rms_clients")
+}
+
+/// @rms {"collection":"leads","kind":"array"}
+model Lead {
+  storageKey    String     @id
+  sortOrder     Int
+  legacyShape   Json
+  extra         Json
+  id            String?
+  dateIn        String?
+  client        String?
+  phone         String?
+  source        String?
+  location      String?
+  need          String?
+  sales         String?
+  nextFollowUp  String?
+  notes         String?
+  stage         String?
+  lastActivity  String?
+  pipelineSide  String?
+  previousStage String?
+  sideReason    String?
+  dp            Float?
+  margin        Float?
+  estGambar     Float?
+  estRab        Float?
+  estAsstCr     Float?
+  milestones    Json?
+  rowsLeadChat  LeadChat[]
+
+  @@index([sortOrder])
+  @@index([stage])
+  @@index([sales])
+  @@index([nextFollowUp])
+  @@map("rms_leads")
+}
+
+/// @rms {"collection":"crm","kind":"array"}
+model CrmActivity {
+  storageKey  String  @id
+  sortOrder   Int
+  legacyShape Json
+  extra       Json
+  id          String?
+  date        String?
+  leadId      String?
+  client      String?
+  phone       String?
+  email       String?
+  category    String?
+  channel     String?
+  subject     String?
+  pic         String?
+  next        String?
+  notes       String?
+
+  @@index([sortOrder])
+  @@index([leadId])
+  @@index([date])
+  @@map("rms_crm_activities")
+}
+
+/// @rms {"collection":"projects","kind":"array"}
+model Project {
+  storageKey          String            @id
+  sortOrder           Int
+  legacyShape         Json
+  extra               Json
+  id                  String?
+  clientId            String?
+  leadId              String?
+  name                String?
+  client              String?
+  location            String?
+  sales               String?
+  salesUserId         String?
+  ops                 String?
+  opsUserId           String?
+  qc                  String?
+  qcUserId            String?
+  status              String?
+  startDate           String?
+  targetFinish        String?
+  actualFinish        String?
+  progress            Float?
+  originalContract    Float?
+  started             Boolean?
+  completionApproved  Boolean?
+  rowsProjectContract ProjectContract[]
+  rowsProjectHandover ProjectHandover[]
+  rowsProjectPortal   ProjectPortal[]
+  rowsPayment         Payment[]
+  rowsInstallment     Installment[]
+  rowsAddendum        Addendum[]
+  rowsProjectDocument ProjectDocument[]
+  rowsInspection      Inspection[]
+  rowsQcFinding       QcFinding[]
+  rowsDailyReport     DailyReport[]
+  rowsWeeklyReport    WeeklyReport[]
+  rowsProjectActivity ProjectActivity[]
+  rowsProjectChat     ProjectChat[]
+
+  @@index([sortOrder])
+  @@index([clientId])
+  @@index([leadId])
+  @@index([status])
+  @@index([salesUserId])
+  @@index([opsUserId])
+  @@map("rms_projects")
+}
+
+/// @rms {"collection":"tasks","kind":"array"}
+model Task {
+  storageKey      String        @id
+  sortOrder       Int
+  legacyShape     Json
+  extra           Json
+  id              String?
+  title           String?
+  description     String?
+  projectId       String?
+  reviewerUserId  String?
+  startDate       String?
+  due             String?
+  priority        String?
+  picUserId       String?
+  pic             String?
+  picEmail        String?
+  reviewerName    String?
+  reviewerEmail   String?
+  creator         String?
+  creatorUserId   String?
+  status          String?
+  submittedAt     String?
+  completedAt     String?
+  reviewNote      String?
+  emailStatus     String?
+  startedAt       String?
+  updatedAt       String?
+  cancelledAt     String?
+  updatedBy       String?
+  revisionCount   Int?
+  picUserIds      Json?
+  rowsTaskHistory TaskHistory[]
+
+  @@index([sortOrder])
+  @@index([projectId])
+  @@index([picUserId])
+  @@index([reviewerUserId])
+  @@index([status])
+  @@index([due])
+  @@map("rms_tasks")
+}
+
+/// @rms {"collection":"approvals","kind":"array"}
+model Approval {
+  storageKey  String  @id
+  sortOrder   Int
+  legacyShape Json
+  extra       Json
+  id          String?
+  type        String?
+  reference   String?
+  projectId   String?
+  subject     String?
+  requestedBy String?
+  approver    String?
+  status      String?
+  comment     String?
+  requestedAt String?
+  decisionAt  String?
+
+  @@index([sortOrder])
+  @@index([projectId])
+  @@index([status])
+  @@map("rms_approvals")
+}
+
+/// @rms {"collection":"support","kind":"array"}
+model SupportTicket {
+  storageKey  String  @id
+  sortOrder   Int
+  legacyShape Json
+  extra       Json
+  id          String?
+  title       String?
+  description String?
+  category    String?
+  priority    String?
+  due         String?
+  requester   String?
+  assigned    String?
+  status      String?
+  projectId   String?
+
+  @@index([sortOrder])
+  @@index([status])
+  @@index([projectId])
+  @@map("rms_support_tickets")
+}
+
+/// @rms {"collection":"escalations","kind":"array"}
+model Escalation {
+  storageKey     String   @id
+  sortOrder      Int
+  legacyShape    Json
+  extra          Json
+  id             String?
+  projectId      String?
+  category       String?
+  subject        String?
+  description    String?
+  risk           String?
+  recommendation String?
+  status         String?
+  submittedAt    String?
+  reviewedAt     String?
+  reviewer       String?
+  note           String?
+  confidential   Boolean?
+
+  @@index([sortOrder])
+  @@index([projectId])
+  @@index([status])
+  @@map("rms_escalations")
+}
+
+/// @rms {"collection":"notifications","kind":"array"}
+model Notification {
+  storageKey  String   @id
+  sortOrder   Int
+  legacyShape Json
+  extra       Json
+  id          String?
+  type        String?
+  text        String?
+  date        String?
+  read        Boolean?
+
+  @@index([sortOrder])
+  @@index([read])
+  @@index([date])
+  @@map("rms_notifications")
+}
+
+/// @rms {"collection":"audit","kind":"array"}
+model BusinessAudit {
+  storageKey  String  @id
+  sortOrder   Int
+  legacyShape Json
+  extra       Json
+  at          String?
+  actor       String?
+  entity      String?
+  entityId    String?
+  action      String?
+  detail      String?
+
+  @@index([sortOrder])
+  @@index([entityId])
+  @@index([at])
+  @@map("rms_business_audit")
+}
+
+/// @rms {"collection":"correspondence","kind":"array"}
+model Correspondence {
+  storageKey  String  @id
+  sortOrder   Int
+  legacyShape Json
+  extra       Json
+  id          String?
+  direction   String?
+  date        String?
+  number      String?
+  party       String?
+  subject     String?
+  projectId   String?
+  notes       String?
+  fileId      String?
+  fileName    String?
+  createdBy   String?
+  createdAt   String?
+  updatedBy   String?
+
+  @@index([sortOrder])
+  @@index([projectId])
+  @@index([date])
+  @@map("rms_correspondence")
+}
+
+/// @rms {"collection":"salesDailyReports","kind":"array"}
+model SalesDailyReport {
+  storageKey  String  @id
+  sortOrder   Int
+  legacyShape Json
+  extra       Json
+  id          String?
+  date        String?
+  sales       String?
+  salesUserId String?
+  notes       String?
+  activities  String?
+  obstacles   String?
+  nextPlan    String?
+  createdAt   String?
+  createdBy   String?
+  updatedAt   String?
+  updatedBy   String?
+  metrics     Json?
+
+  @@index([sortOrder])
+  @@index([sales])
+  @@index([date])
+  @@map("rms_sales_daily_reports")
+}
+
+/// @rms {"collection":"userAccessOverrides","kind":"array"}
+model UserAccessOverride {
+  storageKey  String @id
+  sortOrder   Int
+  legacyShape Json
+  extra       Json
+  userId      Int?
+  add         Json?
+  remove      Json?
+
+  @@index([sortOrder])
+  @@index([userId])
+  @@map("rms_user_access_overrides")
+}
+
+/// @rms {"parent":"Lead","field":"chat","kind":"array"}
+model LeadChat {
+  storageKey       String   @id
+  sortOrder        Int
+  legacyShape      Json
+  extra            Json
+  parentKey        String
+  parent           Lead     @relation(fields: [parentKey], references: [storageKey], onDelete: Cascade)
+  id               String?
+  actor            String?
+  role             String?
+  text             String?
+  attachment       String?
+  attachmentFileId String?
+  at               String?
+  system           Boolean?
+
+  @@index([parentKey, sortOrder])
+  @@map("rms_lead_chat")
+}
+
+/// @rms {"parent":"Project","field":"contract","kind":"object"}
+model ProjectContract {
+  storageKey  String  @id
+  sortOrder   Int
+  legacyShape Json
+  extra       Json
+  parentKey   String  @unique
+  parent      Project @relation(fields: [parentKey], references: [storageKey], onDelete: Cascade)
+  number      String?
+  date        String?
+  status      String?
+  dp          Float?
+  margin      Float?
+  tenor       Float?
+
+  @@index([parentKey, sortOrder])
+  @@map("rms_project_contracts")
+}
+
+/// @rms {"parent":"Project","field":"handover","kind":"object"}
+model ProjectHandover {
+  storageKey  String  @id
+  sortOrder   Int
+  legacyShape Json
+  extra       Json
+  parentKey   String  @unique
+  parent      Project @relation(fields: [parentKey], references: [storageKey], onDelete: Cascade)
+  status      String?
+  submittedAt String?
+  reviewedAt  String?
+  note        String?
+
+  @@index([parentKey, sortOrder])
+  @@map("rms_project_handovers")
+}
+
+/// @rms {"parent":"Project","field":"clientPortal","kind":"object"}
+model ProjectPortal {
+  storageKey  String   @id
+  sortOrder   Int
+  legacyShape Json
+  extra       Json
+  parentKey   String   @unique
+  parent      Project  @relation(fields: [parentKey], references: [storageKey], onDelete: Cascade)
+  token       String?
+  createdAt   String?
+  enabled     Boolean?
+
+  @@index([parentKey, sortOrder])
+  @@index([token])
+  @@map("rms_project_portals")
+}
+
+/// @rms {"parent":"Project","field":"transactions","kind":"array"}
+model Payment {
+  storageKey    String  @id
+  sortOrder     Int
+  legacyShape   Json
+  extra         Json
+  parentKey     String
+  parent        Project @relation(fields: [parentKey], references: [storageKey], onDelete: Cascade)
+  id            String?
+  installmentId String?
+  type          String?
+  label         String?
+  date          String?
+  status        String?
+  proofName     String?
+  proofFileId   String?
+  bank          String?
+  sender        String?
+  reference     String?
+  verifiedBy    String?
+  verifiedAt    String?
+  notes         String?
+  amount        Float?
+  proofData     Json?
+
+  @@index([parentKey, sortOrder])
+  @@index([status])
+  @@index([date])
+  @@index([installmentId])
+  @@map("rms_payments")
+}
+
+/// @rms {"parent":"Project","field":"installments","kind":"array"}
+model Installment {
+  storageKey  String  @id
+  sortOrder   Int
+  legacyShape Json
+  extra       Json
+  parentKey   String
+  parent      Project @relation(fields: [parentKey], references: [storageKey], onDelete: Cascade)
+  id          String?
+  type        String?
+  seq         String?
+  due         String?
+  dueAmount   Float?
+
+  @@index([parentKey, sortOrder])
+  @@index([due])
+  @@map("rms_installments")
+}
+
+/// @rms {"parent":"Project","field":"addendums","kind":"array"}
+model Addendum {
+  storageKey      String  @id
+  sortOrder       Int
+  legacyShape     Json
+  extra           Json
+  parentKey       String
+  parent          Project @relation(fields: [parentKey], references: [storageKey], onDelete: Cascade)
+  id              String?
+  number          String?
+  date            String?
+  description     String?
+  status          String?
+  approvedBy      String?
+  approvedAt      String?
+  rejectedBy      String?
+  rejectedAt      String?
+  rejectionReason String?
+  fileId          String?
+  fileName        String?
+  value           Float?
+  addendumFile    Json?
+
+  @@index([parentKey, sortOrder])
+  @@index([status])
+  @@map("rms_addendums")
+}
+
+/// @rms {"parent":"Project","field":"documents","kind":"array"}
+model ProjectDocument {
+  storageKey  String  @id
+  sortOrder   Int
+  legacyShape Json
+  extra       Json
+  parentKey   String
+  parent      Project @relation(fields: [parentKey], references: [storageKey], onDelete: Cascade)
+  id          String?
+  category    String?
+  type        String?
+  name        String?
+  fileId      String?
+  status      String?
+  date        String?
+  version     Int?
+
+  @@index([parentKey, sortOrder])
+  @@index([fileId])
+  @@index([category])
+  @@map("rms_project_documents")
+}
+
+/// @rms {"parent":"Project","field":"inspections","kind":"array"}
+model Inspection {
+  storageKey  String  @id
+  sortOrder   Int
+  legacyShape Json
+  extra       Json
+  parentKey   String
+  parent      Project @relation(fields: [parentKey], references: [storageKey], onDelete: Cascade)
+  id          String?
+  date        String?
+  category    String?
+  area        String?
+  item        String?
+  result      String?
+  inspector   String?
+
+  @@index([parentKey, sortOrder])
+  @@map("rms_inspections")
+}
+
+/// @rms {"parent":"Project","field":"qcFindings","kind":"array"}
+model QcFinding {
+  storageKey   String  @id
+  sortOrder    Int
+  legacyShape  Json
+  extra        Json
+  parentKey    String
+  parent       Project @relation(fields: [parentKey], references: [storageKey], onDelete: Cascade)
+  id           String?
+  inspectionId String?
+  category     String?
+  area         String?
+  item         String?
+  severity     String?
+  description  String?
+  pic          String?
+  target       String?
+  status       String?
+  beforeName   String?
+  afterName    String?
+  corrective   String?
+  beforeFileId String?
+  afterFileId  String?
+
+  @@index([parentKey, sortOrder])
+  @@index([status])
+  @@index([target])
+  @@index([inspectionId])
+  @@map("rms_qc_findings")
+}
+
+/// @rms {"parent":"Project","field":"progressDaily","kind":"array"}
+model DailyReport {
+  storageKey     String       @id
+  sortOrder      Int
+  legacyShape    Json
+  extra          Json
+  parentKey      String
+  parent         Project      @relation(fields: [parentKey], references: [storageKey], onDelete: Cascade)
+  id             String?
+  activities     String?
+  issues         String?
+  nextPlan       String?
+  updatedBy      String?
+  updatedAt      String?
+  date           String?
+  fileId         String?
+  fileName       String?
+  createdBy      String?
+  createdAt      String?
+  progress       Float?
+  published      Boolean?
+  rowsDailyPhoto DailyPhoto[]
+
+  @@index([parentKey, sortOrder])
+  @@index([date])
+  @@map("rms_daily_reports")
+}
+
+/// @rms {"parent":"Project","field":"progressWeekly","kind":"array"}
+model WeeklyReport {
+  storageKey      String        @id
+  sortOrder       Int
+  legacyShape     Json
+  extra           Json
+  parentKey       String
+  parent          Project       @relation(fields: [parentKey], references: [storageKey], onDelete: Cascade)
+  id              String?
+  start           String?
+  end             String?
+  activities      String?
+  issues          String?
+  nextPlan        String?
+  fileId          String?
+  fileName        String?
+  updatedBy       String?
+  updatedAt       String?
+  createdBy       String?
+  createdAt       String?
+  progress        Float?
+  targetProgress  Float?
+  published       Boolean?
+  rowsWeeklyPhoto WeeklyPhoto[]
+
+  @@index([parentKey, sortOrder])
+  @@index([start])
+  @@map("rms_weekly_reports")
+}
+
+/// @rms {"parent":"DailyReport","field":"photos","kind":"array"}
+model DailyPhoto {
+  storageKey  String      @id
+  sortOrder   Int
+  legacyShape Json
+  extra       Json
+  parentKey   String
+  parent      DailyReport @relation(fields: [parentKey], references: [storageKey], onDelete: Cascade)
+  id          String?
+  name        String?
+  caption     String?
+  uploadedAt  String?
+  uploadedBy  String?
+
+  @@index([parentKey, sortOrder])
+  @@index([id])
+  @@map("rms_daily_photos")
+}
+
+/// @rms {"parent":"WeeklyReport","field":"photos","kind":"array"}
+model WeeklyPhoto {
+  storageKey  String       @id
+  sortOrder   Int
+  legacyShape Json
+  extra       Json
+  parentKey   String
+  parent      WeeklyReport @relation(fields: [parentKey], references: [storageKey], onDelete: Cascade)
+  id          String?
+  name        String?
+  caption     String?
+  uploadedAt  String?
+  uploadedBy  String?
+
+  @@index([parentKey, sortOrder])
+  @@index([id])
+  @@map("rms_weekly_photos")
+}
+
+/// @rms {"parent":"Project","field":"activity","kind":"array"}
+model ProjectActivity {
+  storageKey  String  @id
+  sortOrder   Int
+  legacyShape Json
+  extra       Json
+  parentKey   String
+  parent      Project @relation(fields: [parentKey], references: [storageKey], onDelete: Cascade)
+  at          String?
+  actor       String?
+  text        String?
+
+  @@index([parentKey, sortOrder])
+  @@index([at])
+  @@map("rms_project_activity")
+}
+
+/// @rms {"parent":"Project","field":"chat","kind":"array"}
+model ProjectChat {
+  storageKey       String   @id
+  sortOrder        Int
+  legacyShape      Json
+  extra            Json
+  parentKey        String
+  parent           Project  @relation(fields: [parentKey], references: [storageKey], onDelete: Cascade)
+  id               String?
+  actor            String?
+  role             String?
+  text             String?
+  attachment       String?
+  attachmentFileId String?
+  at               String?
+  system           Boolean?
+
+  @@index([parentKey, sortOrder])
+  @@map("rms_project_chat")
+}
+
+/// @rms {"parent":"Task","field":"history","kind":"array"}
+model TaskHistory {
+  storageKey  String  @id
+  sortOrder   Int
+  legacyShape Json
+  extra       Json
+  parentKey   String
+  parent      Task    @relation(fields: [parentKey], references: [storageKey], onDelete: Cascade)
+  at          String?
+  actor       String?
+  from        String?
+  to          String?
+  note        String?
+  action      String?
+  oldStatus   String?
+  newStatus   String?
+
+  @@index([parentKey, sortOrder])
+  @@map("rms_task_history")
+}
+
+// The activation marker is inserted only after a lossless offline migration.
+model StorageMeta {
+  id         Int    @id
+  version    Int
+  format     Int    @default(1)
+  updatedAt  String
+  sourceHash String
+  writeToken String
+  rootShape  Json
+
+  @@map("rms_storage_meta")
+}
+
+// Configuration and unknown top-level extension fields; never a business snapshot.
+model RootField {
+  key   String @id
+  value Json
+
+  @@map("rms_root_fields")
+}
+
+// Local migration bookkeeping; Cloudflare cutover is a separate reviewed operation.
+model SchemaMigration {
+  name      String @id
+  checksum  String
+  appliedAt String
+
+  @@map("rms_migration_history")
+}

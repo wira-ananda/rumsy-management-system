@@ -11,3 +11,8 @@ test-results/
 
 api/build/
 *.zip
+api/src/generated/
+api/.local/
+api/migration-artifacts/
+
+.wrangler/

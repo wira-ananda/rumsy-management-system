@@ -1,0 +1,24 @@
+{
+  "name": "rms-rumsy-staging",
+  "pages_build_output_dir": "../../../web/build",
+  "compatibility_date": "2026-10-16",
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "rms-rumsy-staging",
+      "database_id": "b1cb3744-7d94-453c-8b3c-e23bc407abdf",
+    },
+  ],
+  "r2_buckets": [
+    {
+      "binding": "FILES",
+      "bucket_name": "rms-private-staging",
+    },
+  ],
+  "vars": {
+    "RMS_STORAGE": "legacy",
+    "RMS_MAINTENANCE": "0",
+    "RMS_URL": "https://rms-rumsy-staging.pages.dev",
+  },
+  "$schema": "../../node_modules/wrangler/config-schema.json",
+}

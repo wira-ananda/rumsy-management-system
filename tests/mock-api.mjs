@@ -2,6 +2,7 @@
 import { createServer } from "node:http";
 import worker from "../api/build/_worker.js";
 import { resolve } from "node:path";
+import { normalizeFixture } from "./helpers/normalized-fixture.mjs";
 import { createMockBindings } from "./helpers/mock-bindings.mjs";
 
 const port = Number(process.env.RMS_TEST_PORT || 8788);
@@ -10,12 +11,18 @@ const staticRoot = process.env.RMS_TEST_STATIC_ROOT
   : null;
 
 const bindings = createMockBindings(staticRoot);
-const { env, token, reset } = bindings;
+const { env, token } = bindings;
+const reset = async () => {
+  bindings.reset();
+  if (process.env.RMS_TEST_STORAGE === "normalized")
+    await normalizeFixture(bindings);
+};
+await reset();
 const server = createServer(async (req, res) => {
   try {
     const url = "http://127.0.0.1:" + port + req.url;
     if (req.url === "/__test/reset" && req.method === "POST") {
-      reset();
+      await reset();
       res.writeHead(200, { "content-type": "application/json" });
       res.end(JSON.stringify({ ok: true, token }));
       return;

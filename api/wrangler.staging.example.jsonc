@@ -1,0 +1,28 @@
+// Actual configured staging lives in deploy/staging/wrangler.jsonc.
+// This file is a reference template; do not copy it over production config.
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  // A separate Pages project, database and R2 bucket. Never use production IDs here.
+  "name": "rms-rumsy-staging",
+  "pages_build_output_dir": "../web/build",
+  "compatibility_date": "2026-10-16",
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "rms-rumsy-staging",
+      "database_id": "REPLACE_WITH_NEW_STAGING_DATABASE_UUID"
+    }
+  ],
+  "r2_buckets": [
+    {
+      "binding": "FILES",
+      "bucket_name": "rms-private-staging"
+    }
+  ],
+  "vars": {
+    // Keep legacy until the staging data has been imported, migrated and verified.
+    "RMS_STORAGE": "legacy",
+    "RMS_MAINTENANCE": "0",
+    "RMS_URL": "https://rms-rumsy-staging.pages.dev"
+  }
+}

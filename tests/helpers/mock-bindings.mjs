@@ -1,3 +1,4 @@
+import { sqliteD1 } from "./sqlite-d1.mjs";
 import { DatabaseSync } from "node:sqlite";
 import { pbkdf2Sync } from "node:crypto";
 import { seed } from "../seed.mjs";
@@ -119,27 +120,7 @@ export function createMockBindings(staticRoot = null) {
   }
   reset();
   const env = {
-    DB: {
-      prepare(sql) {
-        let args = [];
-        return {
-          bind(...values) {
-            args = values;
-            return this;
-          },
-          async first() {
-            return db.prepare(sql).get(...args) || null;
-          },
-          async all() {
-            return { results: db.prepare(sql).all(...args) };
-          },
-          async run() {
-            const result = db.prepare(sql).run(...args);
-            return { meta: { changes: Number(result.changes) } };
-          },
-        };
-      },
-    },
+    DB: sqliteD1(() => db),
     FILES: {
       async put(key, body, options) {
         files.set(key, {

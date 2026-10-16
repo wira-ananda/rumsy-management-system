@@ -18,7 +18,7 @@ Frontend dimigrasikan pada 15 Oktober 2026; backend dimigrasikan ke Hono pada 16
 - Modul: auth, user, directory, state, file, client, notification, health dan pipeline. Modul tanpa input tidak membutuhkan schema; pipeline merupakan service internal.
 - Route dan middleware benar-benar memakai Hono. Query D1, akses R2, email, serializer portal dan aturan state terpisah dari registrasi route. Tidak ada pemanggilan router Worker lama.
 - Parsing input mempertahankan normalisasi dan pesan validasi sebelumnya. Snapshot JSON tetap terbuka terhadap field produksi tambahan; belum dirombak menjadi CRUD per entitas.
-- `shared/env.ts` mendefinisikan binding Cloudflare, bukan environment Bun server. D1 dipertahankan melalui `shared/db/d1.ts`; tidak ditambahkan Prisma/PostgreSQL, Docker atau server `.listen()`.
+- `shared/env.ts` mendefinisikan binding Cloudflare, bukan environment Bun server. D1 dipertahankan melalui `shared/db/d1.ts` untuk auth/file dan Prisma + adapter D1 untuk model bisnis baru. Detail migrasi storage lokal ada di [DATABASE-MIGRATION.md](./DATABASE-MIGRATION.md). Tidak ditambahkan PostgreSQL, Docker atau server `.listen()` pada Worker.
 - `scripts/build-api.mjs` membundel Hono dan TypeScript menjadi Worker ESM mandiri. Packaging frontend menyalin hasil tersebut ke `web/build/_worker.js`.
 - `_worker.js` lama di root dihapus dari jalur aktif. Salinan utuh tetap berada di `baseline/original/_worker.js`, tidak masuk paket deployment.
 
@@ -73,3 +73,7 @@ Production dan Preview harus memiliki binding/secret masing-masing. Preview yang
 - [SvelteKit: adapter-static](https://svelte.dev/docs/kit/adapter-static)
 - [Hono: Application API](https://hono.dev/docs/api/hono)
 - [Hono: Cloudflare Pages](https://hono.dev/docs/getting-started/cloudflare-pages)
+
+## Tabel Prisma — tahap lokal 16 Oktober 2026
+
+30 model bisnis baru dipisahkan dari snapshot menggunakan Prisma 7.8.0. Backup versi 920 menghasilkan 1.779 record yang sama setelah dibaca ulang; 71 file R2 cocok dengan metadata backup. Hasil pengujian, workflow schema, batas adapter snapshot dan rencana cutover dijelaskan di [DATABASE-MIGRATION.md](./DATABASE-MIGRATION.md). Produksi belum diubah. Build kini memakai direktori module Worker dengan WASM; ZIP upload lama belum diperbarui.

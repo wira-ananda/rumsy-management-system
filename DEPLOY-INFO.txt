@@ -1,36 +1,29 @@
-RMS RUMSY — SVELTEKIT FRONTEND / HONO CLOUDFLARE BACKEND
+RMS — SVELTE / HONO / PRISMA + D1
 
-Build dari root project:
-  bun install
-  bun run check
-  bun test
-  bun run build
+17 Oktober 2026: Prisma aktif di https://rms-rumsy-app.pages.dev
+D1 produksi tetap rms-rumsy; R2 tetap rms-private.
+Versi sebelum Prisma: https://rms-rumsy-staging.pages.dev
+D1 rms-rumsy-staging; R2 rms-private-staging; mode legacy.
+Kedua lingkungan tidak disinkronkan otomatis. Lihat CUTOVER-RESULT.md.
 
-Upload ISI folder web/build ke project Cloudflare Pages RMS yang sudah ada.
-Jangan upload root repository, tests, atau baseline sebagai aplikasi baru.
+bun run deploy:production
+bun run deploy:staging
+Perintah memeriksa kode, build, lalu deploy ke target eksplisit.
+Deploy kode tidak menjalankan migrasi schema otomatis.
 
-Sumber backend ada di api/src/, dengan modul route/service/schema seperti SAFAR.
-Build membundel Hono menjadi api/build/_worker.js lalu menyalinnya ke
-web/build/_worker.js. Jangan mengedit file bundle hasil build.
-URL internal /#/... dan portal /client.html?token=... tetap didukung.
+Output terbaru: web/build/, dengan DIREKTORI module Worker _worker.js/
+(index.js + query_compiler_fast_bg.wasm). Bukan hanya satu file Worker lagi.
+Gunakan deployment Wrangler Pages yang mendukung module Worker.
+ZIP rms-rumsy-svelte-upload.zip adalah arsip sebelum Prisma, bukan paket produksi baru.
 
-Paket sekarang mencakup autentikasi Bearer. Deploy frontend dan backend bersama;
-frontend baru tidak dapat memakai backend cookie-only versi lama.
-Cookie hanya untuk refresh; data internal wajib Authorization: Bearer <token>.
-Membuka URL data langsung di address bar akan menghasilkan 401 setelah deploy.
+Binding tetap DB -> rms-rumsy, FILES -> rms-private, secret/variable email tetap.
+RMS_STORAGE=normalized sudah aktif di produksi. app_state menjadi arsip terkunci.
+Jangan mengganti produksi ke legacy atau mengimpor backup lama setelah ada perubahan baru.
+Production dan Preview memerlukan konfigurasi masing-masing.
+Konfigurasi produksi: api/deploy/production/wrangler.jsonc
 
-Pertahankan binding dan secret dari deployment lama:
-  DB -> rms-rumsy
-  FILES -> rms-private
-  RESEND_API_KEY, EMAIL_FROM, RMS_URL
-
-Production dan Preview memiliki konfigurasi binding/secret terpisah.
-Preview kosong tidak otomatis memakai binding Production.
-Error reading 'prepare' menandakan binding DB tidak tersedia pada environment itu.
-Preview dengan binding produksi dapat menulis ke data produksi.
-
-Tidak ada SQL baru, reset D1, salinan data, atau bucket R2 baru yang diperlukan.
-Tidak ada deployment otomatis yang dijalankan oleh migrasi lokal ini.
-
-Petunjuk development, proxy API, pengujian dan batas migrasi ada di README.md
-dan MIGRATION.md. Paket asli disimpan di baseline/original/.
+STAGING CLOUD SUDAH TERSEDIA:
+https://rms-rumsy-staging.pages.dev
+Konfigurasi: api/deploy/staging/wrangler.jsonc
+Deploy staging dari root: bun run deploy:staging
+Baca STAGING.md. Deploy staging tidak mengubah produksi.

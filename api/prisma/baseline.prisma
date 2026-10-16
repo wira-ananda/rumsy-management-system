@@ -1,0 +1,157 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+  runtime  = "cloudflare"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model User {
+  id                   Int                 @id @default(autoincrement())
+  email                String              @unique(map: "sqlite_autoindex_users_1")
+  fullName             String              @map("full_name")
+  role                 String
+  scope_name           String?
+  password_hash        String
+  password_salt        String
+  password_iterations  Int                 @default(310000)
+  active               Int                 @default(1)
+  must_change_password Int                 @default(1)
+  created_at           String              @default(dbgenerated("CURRENT_TIMESTAMP"))
+  updated_at           String              @default(dbgenerated("CURRENT_TIMESTAMP"))
+  contracts            contracts[]
+  files                files[]
+  project_documents    project_documents[]
+  project_members      project_members[]
+  server_audit         server_audit[]
+  sessions             sessions[]
+  transactions         transactions[]
+
+  @@map("users")
+}
+
+model app_state {
+  id         Int    @id @default(autoincrement())
+  version    Int    @default(1)
+  data       String
+  updated_at String @default(dbgenerated("CURRENT_TIMESTAMP"))
+}
+
+model contracts {
+  id              Int      @id @default(autoincrement())
+  project_id      Int
+  contract_number String?
+  contract_type   String?  @default("Initial")
+  contract_value  Float?   @default(0)
+  dp_value        Float?   @default(0)
+  payment_method  String?
+  tenor           Int?     @default(0)
+  start_date      String?
+  end_date        String?
+  status          String?  @default("Active")
+  created_by      Int?
+  created_at      String?  @default(dbgenerated("CURRENT_TIMESTAMP"))
+  updated_at      String?  @default(dbgenerated("CURRENT_TIMESTAMP"))
+  users           User?    @relation(fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  projects        projects @relation(fields: [project_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model files {
+  id            String @id
+  object_key    String  @unique(map: "sqlite_autoindex_files_2")
+  original_name String
+  content_type  String?
+  size          Int     @default(0)
+  entity_type   String?
+  entity_id     String?
+  uploaded_by   Int?
+  created_at    String  @default(dbgenerated("CURRENT_TIMESTAMP"))
+  users         User?   @relation(fields: [uploaded_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([entity_type, entity_id], map: "idx_files_entity")
+}
+
+model project_documents {
+  id                Int      @id @default(autoincrement())
+  project_id        Int
+  file_id           String?
+  document_category String
+  document_name     String
+  document_status   String?  @default("Draft")
+  revision          Int?     @default(0)
+  uploaded_by       Int?
+  created_at        String?  @default(dbgenerated("CURRENT_TIMESTAMP"))
+  updated_at        String?  @default(dbgenerated("CURRENT_TIMESTAMP"))
+  users             User?    @relation(fields: [uploaded_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  projects          projects @relation(fields: [project_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model project_members {
+  id         Int      @id @default(autoincrement())
+  project_id Int
+  user_id    Int
+  role       String
+  created_at String?  @default(dbgenerated("CURRENT_TIMESTAMP"))
+  users      User     @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  projects   projects @relation(fields: [project_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model projects {
+  id                Int                 @id @default(autoincrement())
+  project_code      String
+  project_name      String
+  client_name       String?
+  client_phone      String?
+  location          String?
+  business_unit     String?
+  project_type      String?
+  status            String?             @default("Planning")
+  start_date        String?
+  end_date          String?
+  created_by        Int?
+  created_at        String?             @default(dbgenerated("CURRENT_TIMESTAMP"))
+  updated_at        String?             @default(dbgenerated("CURRENT_TIMESTAMP"))
+  contracts         contracts[]
+  project_documents project_documents[]
+  project_members   project_members[]
+  transactions      transactions[]
+}
+
+model server_audit {
+  id         Int     @id @default(autoincrement())
+  user_id    Int?
+  action     String
+  detail     String?
+  ip         String?
+  created_at String  @default(dbgenerated("CURRENT_TIMESTAMP"))
+  users      User?   @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model sessions {
+  id         String @id
+  user_id    Int
+  token_hash String  @unique(map: "sqlite_autoindex_sessions_2")
+  expires_at String
+  created_at String  @default(dbgenerated("CURRENT_TIMESTAMP"))
+  users      User    @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([expires_at], map: "idx_sessions_exp")
+  @@index([token_hash], map: "idx_sessions_token")
+}
+
+model transactions {
+  id               Int      @id @default(autoincrement())
+  project_id       Int
+  transaction_type String
+  category         String?
+  description      String?
+  amount           Float?   @default(0)
+  transaction_date String?
+  payment_status   String?  @default("Pending")
+  created_by       Int?
+  created_at       String?  @default(dbgenerated("CURRENT_TIMESTAMP"))
+  users            User?    @relation(fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  projects         projects @relation(fields: [project_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
