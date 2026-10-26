@@ -4,33 +4,63 @@
   import { stageNames, stages } from "../../constants/catalog.js";
   import { nextStageInfo } from "../../domain/pipeline.js";
   import { money, pct } from "../../utils/format.js";
+  let month = $state("");
   let leads = $derived(visibleLeads());
+  let filtered = $derived(
+    leads.filter(
+      (lead: any) =>
+        !month || String(lead.dateIn || "").startsWith(month + "-"),
+    ),
+  );
 </script>
 
 <PageHeader
   title="Sales Kanban — Otomatis"
   description="Kanban hanya visualisasi. Tidak ada drag & drop. Stage berubah dari milestone, payment VERIFIED, handover, project start dan completion gate."
 />
-<div class="notice info">
-  <b>READ ONLY:</b> user melakukan pekerjaan; sistem menentukan posisi client. Buka
-  kartu untuk melihat syarat stage berikutnya.
+<div class="kanban-toolbar">
+  <div class="kanban-note">
+    <span class="readonly-tag">READ ONLY</span>
+    <p>
+      Stage ditentukan otomatis. Buka kartu untuk melihat langkah berikutnya.
+    </p>
+  </div>
+  <div class="kanban-filters">
+    <span class="lead-total" role="status" aria-live="polite"
+      >{filtered.length} lead</span
+    >
+    <label class="month-filter"
+      ><span>Bulan masuk</span><input
+        class="input"
+        id="kanbanMonth"
+        type="month"
+        bind:value={month}
+      /></label
+    >
+    <button
+      class="btn ghost reset-month"
+      type="button"
+      onclick={() => (month = "")}
+      disabled={!month}>Semua bulan</button
+    >
+  </div>
 </div>
 <div class="kanban-wrap mt">
   <div
     class="kanban"
     style="grid-template-columns:repeat(7,210px);min-width:1540px"
   >
-    {#each [...stages, "HOLD_BATAL"] as stage}<div
-        class="kcol"
-        class:side={stage === "HOLD_BATAL"}
-      >
+    {#each [...stages, "HOLD_BATAL"] as stage}
+      {@const columnLeads = filtered.filter(
+        (lead: any) => lead.stage === stage,
+      )}
+      <div class="kcol" class:side={stage === "HOLD_BATAL"} data-stage={stage}>
         <div class="khead">
           <span>{stageNames[stage as keyof typeof stageNames]}</span><span
-            >{leads.filter((lead: any) => lead.stage === stage).length}</span
+            >{columnLeads.length}</span
           >
         </div>
-        {#each leads.filter((lead: any) => lead.stage === stage) as lead}{@const next =
-            nextStageInfo(lead)}
+        {#each columnLeads as lead}{@const next = nextStageInfo(lead)}
           <div class="kcard">
             <b>{lead.client}</b>
             <div class="tiny muted">{lead.location} • {lead.sales}</div>
@@ -48,3 +78,125 @@
       </div>{/each}
   </div>
 </div>
+
+<style>
+  .kanban-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    padding: 12px 16px;
+    border: 1px solid #dce6f2;
+    border-radius: 12px;
+    background: #eef4fb;
+  }
+  .kanban-note {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+  }
+  .readonly-tag {
+    flex-shrink: 0;
+    padding: 5px 7px;
+    border-radius: 5px;
+    background: #dfeafa;
+    color: #2862a4;
+    font-size: 9px;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+  }
+  .kanban-note p {
+    margin: 0;
+    font-size: 12px;
+    line-height: 1.5;
+    color: #537091;
+  }
+  .kanban-filters {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-shrink: 0;
+  }
+  .lead-total {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--slate);
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+  }
+  .month-filter {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .month-filter > span {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--slate);
+    white-space: nowrap;
+  }
+  .month-filter .input {
+    width: 157px;
+    min-height: 36px;
+    height: 36px;
+    padding: 6px 9px;
+    font-size: 12px;
+    background: #fff;
+  }
+  .reset-month {
+    min-height: 36px;
+    padding: 7px 10px;
+    font-size: 11px;
+    white-space: nowrap;
+    background: #fff;
+  }
+  @media (max-width: 1100px) {
+    .kanban-toolbar {
+      align-items: stretch;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .kanban-filters {
+      justify-content: flex-end;
+    }
+  }
+  @media (max-width: 540px) {
+    .kanban-toolbar {
+      padding: 12px;
+    }
+    .kanban-note {
+      align-items: flex-start;
+      gap: 8px;
+    }
+    .kanban-note p {
+      font-size: 11px;
+    }
+    .kanban-filters {
+      flex-wrap: wrap;
+      align-items: flex-end;
+      gap: 8px;
+    }
+    .month-filter {
+      flex: 1;
+      display: block;
+      min-width: 0;
+    }
+    .month-filter > span {
+      display: block;
+      margin-bottom: 4px;
+      font-size: 10px;
+    }
+    .month-filter .input {
+      width: 100%;
+      min-width: 0;
+    }
+    .lead-total {
+      order: 3;
+      flex-basis: 100%;
+      text-align: right;
+      font-size: 11px;
+    }
+  }
+</style>
