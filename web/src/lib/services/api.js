@@ -23,7 +23,9 @@ export async function apiCall(path, options = {}) {
     const msg =
       b?.error === "INTERNAL_ERROR" && b?.message
         ? `${b.error}: ${b.message}`
-        : b?.error || `HTTP ${r.status}`;
+        : b?.error === "LEAD_VALIDATION"
+          ? b.message
+          : b?.error || `HTTP ${r.status}`;
     const e = new Error(msg);
     e.status = r.status;
     e.payload = b;
@@ -39,9 +41,9 @@ export async function fetchState() {
   return runtime.data;
 }
 
-export function save() {
+export function save({ throwOnError = false } = {}) {
   const snapshot = clone(runtime.data);
-  runtime.saveChain = runtime.saveChain.then(async () => {
+  const attempt = runtime.saveChain.then(async () => {
     try {
       const r = await apiCall("/api/state", {
         method: "PUT",
@@ -55,15 +57,18 @@ export function save() {
         );
         await fetchState();
         render();
-      } else {
+      } else if (!throwOnError) {
         console.error("Gagal menyimpan RMS", e);
         alert(
           "Gagal menyimpan ke database Cloudflare. Periksa koneksi lalu coba lagi.",
         );
       }
+      if (throwOnError) throw e;
     }
   });
-  return runtime.saveChain;
+  // A rejected strict form save must not poison subsequent queued saves.
+  runtime.saveChain = attempt.catch(() => {});
+  return attempt;
 }
 
 export async function uploadFile(file, entityType, entityId) {

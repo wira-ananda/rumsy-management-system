@@ -11,6 +11,7 @@ import { save } from '../services/api.js';
 import { addLeadChat, addProjectChat } from '../services/chat.js';
 import { runtime } from '../stores/runtime.js';
 import { nowLabel, uid } from '../utils/format.js';
+import { leadNeedLabel } from './lead-terms.ts';
 
 export function currentContract(p) {
 	return (
@@ -258,7 +259,7 @@ export function ensureProjectForLead(l) {
 		id: `RMS-PRJ-${new Date().getFullYear()}-${Date.now().toString(36).toUpperCase()}`,
 		clientId: c.id,
 		leadId: l.id,
-		name: `${l.need} - ${l.client}`,
+		name: `${leadNeedLabel(l)} - ${l.client}`,
 		client: l.client,
 		location: l.location,
 		sales: l.sales,
@@ -282,7 +283,7 @@ export function ensureProjectForLead(l) {
 			status: 'DRAFT',
 			dp: Number(l.dp || 0),
 			margin: Number(l.margin || 0),
-			tenor: 36,
+			tenor: Number.isInteger(l.tenorYears) && l.tenorYears >= 1 && l.tenorYears <= 15 ? l.tenorYears * 12 : 36,
 		},
 		handover: { status: 'DRAFT', submittedAt: '', reviewedAt: '', note: '' },
 		started: false,

@@ -13,7 +13,8 @@ import { addLeadChat } from "../../services/chat.js";
 import { save } from "../../services/api.js";
 import { openForm, options } from "../../services/forms";
 import { uid, nowLabel, money } from "../../utils/format.js";
-import type { FormField } from "../../types/forms";
+import LeadForm from "../../components/sales/LeadForm.svelte";
+import { showDialog } from "../../stores/dialog";
 
 export function leadForm(edit: any = null) {
   const lead = edit || {};
@@ -21,82 +22,31 @@ export function leadForm(edit: any = null) {
     runtime.session!.role === "SALES_EXECUTIVE"
       ? [runtime.session!.scopeName || runtime.session!.name]
       : [...new Set([...salesDirectoryNames(), lead.sales].filter(Boolean))];
-  const fields: FormField[] = [
-    {
-      name: "dateIn",
-      label: "TGL MASUK",
-      type: "date",
-      value: lead.dateIn || TODAY,
-      required: true,
-    },
-    {
-      name: "client",
-      label: "NAMA CLIENT",
-      value: lead.client,
-      required: true,
-    },
-    { name: "phone", label: "NO WA", value: lead.phone, required: true },
-    {
-      name: "source",
-      label: "SUMBER",
-      type: "select",
-      value: lead.source || runtime.data!.settings.leadSources[0],
-      options: options(runtime.data!.settings.leadSources),
-    },
-    { name: "location", label: "LOKASI", value: lead.location, required: true },
-    {
-      name: "need",
-      label: "KEBUTUHAN",
-      value: lead.need || "Rumah",
-      required: true,
-    },
-    ...(["dp", "margin", "estGambar", "estRab", "estAsstCr"] as const).map(
-      (name, index): FormField => ({
-        name,
-        label: ["% DP", "% MARGIN", "EST GAMBAR", "EST RAB", "EST ASST CR"][
-          index
-        ],
-        type: "number",
-        value: lead[name] ?? (name === "dp" ? 20 : name === "margin" ? 8 : 0),
-        ...(index < 2 ? { min: 0, max: 100, required: true } : {}),
-      }),
+  const sources = [
+    ...new Set(
+      [
+        ...(runtime.data!.settings.leadSources || []),
+        "WhatsApp",
+        lead.source,
+      ].filter(Boolean),
     ),
-    {
-      name: "sales",
-      label: "SALES PIC",
-      type: "select",
-      value: lead.sales || sales[0],
-      options: options(sales),
-      required: true,
-      hint: "Mengikuti akun Sales aktif di User Management.",
-    },
-    {
-      name: "nextFollowUp",
-      label: "NEXT FOLLOW UP",
-      type: "date",
-      value: lead.nextFollowUp,
-    },
-    {
-      name: "notes",
-      label: "CATATAN",
-      type: "textarea",
-      value: lead.notes,
-      wide: true,
-    },
-  ];
-  openForm(
-    edit ? "Edit Lead" : "Tambah Lead Baru",
-    fields,
-    async (form) => {
-      const value: any = Object.fromEntries(form);
-      for (const key of ["dp", "margin", "estGambar", "estRab", "estAsstCr"])
-        value[key] = Number(value[key] || 0);
+  ] as string[];
+  showDialog(edit ? "Edit Lead" : "Tambah Lead Baru", LeadForm, {
+    lead,
+    sales,
+    sources,
+    editing: !!edit,
+    submit: async (value: any) => {
       value.sales =
         salesDisplay(
           runtime.salesDirectory.find(
             (user) => normSales(salesDisplay(user)) === normSales(value.sales),
           ),
         ) || value.sales;
+      const before = edit ? JSON.parse(JSON.stringify(edit)) : null;
+      const data = runtime.data!,
+        previousAudit = [...data.audit];
+      let item: any;
       if (edit) {
         Object.assign(edit, value);
         recomputeLeadStage(edit);
@@ -108,9 +58,10 @@ export function leadForm(edit: any = null) {
           "Data lead diperbarui dan pipeline dievaluasi ulang",
         );
       } else {
-        const item = {
+        item = {
           id: uid("LD"),
           ...value,
+          estGambar: 0,
           stage: "WARM",
           lastActivity: TODAY,
           milestones: ["Kebutuhan teridentifikasi"],
@@ -125,11 +76,27 @@ export function leadForm(edit: any = null) {
           "Lead baru dibuat; pipeline dievaluasi otomatis",
         );
       }
-      await save();
+      try {
+        await save({ throwOnError: true });
+      } catch (error) {
+        // A conflict reloads fresh server state; only undo our optimistic
+        // changes when this is still the same local snapshot.
+        if (runtime.data === data) {
+          if (edit && before) {
+            for (const key of Object.keys(edit))
+              if (!(key in before)) delete edit[key];
+            Object.assign(edit, before);
+          }
+          if (item)
+            data.leads = data.leads.filter((lead: any) => lead.id !== item.id);
+          data.audit = previousAudit;
+        }
+        throw error;
+      }
     },
-    { id: "leadForm", submitLabel: edit ? "Simpan Perubahan" : "Buat Lead" },
-  );
+  });
 }
+
 export async function deleteLead(lead: any) {
   const linked = projectForLead(lead.id);
   if (linked)
