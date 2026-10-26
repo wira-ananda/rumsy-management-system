@@ -51,6 +51,77 @@ async function state(f) {
 async function save(f, snapshot) {
   return request(f, "state", { method: "PUT", body: JSON.stringify(snapshot) });
 }
+test("lead commercial terms persist in Prisma, reject tampering, and preserve historical leads", async () => {
+  const f = await fixture();
+  try {
+    const original = await state(f);
+    const lead = {
+      id: "LD-QUALIFIED",
+      client: "Lead Baru",
+      phone: "0812",
+      location: "Makassar",
+      need: "Other",
+      needDetail: "Klinik",
+      source: "WhatsApp",
+      sales: "Arif",
+      estRab: 500000000,
+      margin: 8,
+      dp: 25,
+      dpAmount: 125000000,
+      tenorYears: 5,
+      collateral: "SHM",
+      estGambar: 0,
+      estAsstCr: 0,
+      milestones: [],
+      stage: "WARM",
+    };
+    for (const invalid of [
+      { dp: 19, dpAmount: 95000000 },
+      { margin: 9 },
+      { dpAmount: 1 },
+      { tenorYears: 16 },
+      { tenorYears: 1.5 },
+      { collateral: "" },
+    ]) {
+      const snapshot = structuredClone(original);
+      snapshot.data.leads.push({ ...lead, ...invalid });
+      const response = await save(f, snapshot);
+      assert.equal(response.status, 400);
+      assert.equal((await response.json()).error, "LEAD_VALIDATION");
+      assert.equal((await state(f)).version, original.version);
+    }
+    const valid = structuredClone(original);
+    valid.data.leads.push(lead);
+    assert.equal((await save(f, valid)).status, 200);
+    const actual = await state(f);
+    const persisted = actual.data.leads.find((l) => l.id === lead.id);
+    assert.equal(persisted.dpAmount, 125000000);
+    assert.equal(persisted.tenorYears, 5);
+    assert.equal(persisted.collateral, "SHM");
+    assert.equal(persisted.needDetail, "Klinik");
+    assert.equal(
+      f.db
+        .prepare("SELECT dpAmount,tenorYears FROM rms_leads WHERE id=?")
+        .get(lead.id).tenorYears,
+      5,
+    );
+    for (const old of original.data.leads) {
+      // Stage is re-evaluated by the existing whole-state pipeline on every save.
+      const { stage: oldStage, ...previousValues } = old;
+      const { stage: currentStage, ...currentValues } = actual.data.leads.find(
+        (l) => l.id === old.id,
+      );
+      assert.deepEqual(currentValues, previousValues);
+    }
+    actual.data.leads[0].notes = "Catatan baru pada lead lama";
+    assert.equal((await save(f, actual)).status, 200);
+    const next = await state(f);
+    next.data.leads.find((l) => l.id === lead.id).margin = 3;
+    assert.equal((await save(f, next)).status, 400);
+  } finally {
+    f.close();
+  }
+});
 test("normalized Prisma reads match legacy JSON exactly and public portal matches legacy output", async () => {
   const f = await fixture();
   try {

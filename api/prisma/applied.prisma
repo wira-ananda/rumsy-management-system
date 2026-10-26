@@ -200,6 +200,10 @@ model Lead {
   estGambar     Float?
   estRab        Float?
   estAsstCr     Float?
+  dpAmount      Float?
+  tenorYears    Int?
+  collateral    String?
+  needDetail    String?
   milestones    Json?
   rowsLeadChat  LeadChat[]
 

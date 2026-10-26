@@ -82,7 +82,7 @@ if (production) {
         "--remote",
         "--json",
         "--command",
-        "SELECT version,format FROM rms_storage_meta WHERE id=1",
+        "SELECT version,format FROM rms_storage_meta WHERE id=1; PRAGMA table_info(rms_leads)",
       ],
       true,
     ),
@@ -91,6 +91,13 @@ if (production) {
     rows[0].results[0]?.format,
     1,
     "Production migration marker missing; deployment blocked",
+  );
+  const columns = new Set(rows[1].results.map((column) => column.name));
+  assert.ok(
+    ["dpAmount", "tenorYears", "collateral", "needDetail"].every((column) =>
+      columns.has(column),
+    ),
+    "Lead qualification migration missing; apply api/prisma/migrations/20261026020527_lead_qualification/migration.sql before deploying production. No deployment performed.",
   );
 }
 console.log(

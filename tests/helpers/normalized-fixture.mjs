@@ -1,17 +1,18 @@
-import { readFile } from "node:fs/promises";
+import { readFile, readdir } from "node:fs/promises";
 import { models, encode, sqlValue } from "../../api/build/record-codec.mjs";
 export async function normalizeFixture(f) {
   const snapshot = f.db.prepare("SELECT * FROM app_state WHERE id=1").get();
   const encoded = await encode(JSON.parse(snapshot.data));
-  f.db.exec(
-    await readFile(
-      new URL(
-        "../../api/prisma/migrations/202610160001_normalized_storage/migration.sql",
-        import.meta.url,
+  const migrations = new URL("../../api/prisma/migrations/", import.meta.url);
+  for (const entry of (await readdir(migrations, { withFileTypes: true }))
+    .filter((entry) => entry.isDirectory())
+    .sort((a, b) => a.name.localeCompare(b.name)))
+    f.db.exec(
+      await readFile(
+        new URL(entry.name + "/migration.sql", migrations),
+        "utf8",
       ),
-      "utf8",
-    ),
-  );
+    );
   f.db.exec("PRAGMA foreign_keys=ON");
   for (const model of models)
     for (const row of encoded.records[model.name]) {

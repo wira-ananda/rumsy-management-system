@@ -8,6 +8,7 @@ import { json } from "../../shared/utils/api-response";
 import { audit } from "../../shared/utils/audit";
 import { enforceSensitive } from "./state.permissions";
 import type { SaveStateInput } from "./state.schema";
+import { validateLeadChanges } from "./lead-validation";
 import {
   normalized,
   readNormalized,
@@ -47,6 +48,9 @@ const save = async (
     incoming.escalations = deepClone(oldState.escalations || []);
   const next = enforceSensitive(oldState, incoming, user),
     nextVersion = row.version + 1;
+  const leadError = validateLeadChanges(oldState, next);
+  if (leadError)
+    return json({ error: "LEAD_VALIDATION", message: leadError }, 400);
   const result = normalized(env)
     ? {
         meta: {
