@@ -1,4 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
+import { selectMonth } from "./helpers/month-picker";
 import {
   nav,
   projectTabs,
@@ -192,9 +193,9 @@ test("kanban month filters cards and every stage count while preserving DP Gamba
     ).toContainText("DP Gambar");
   }
   await assertColumns();
-  await page.locator("#kanbanMonth").fill("2026-07");
+  await selectMonth(page, "kanbanMonth", "2026-07");
   await assertColumns("2026-07");
-  await page.locator("#kanbanMonth").fill("2026-08");
+  await selectMonth(page, "kanbanMonth", "2026-08");
   await assertColumns("2026-08");
   expect(
     await page.locator(".kcol[data-stage=DP_GAMBAR] .kcard").count(),
@@ -209,7 +210,7 @@ test("kanban month filters cards and every stage count while preserving DP Gamba
     path: "test-results/kanban-month-desktop.png",
     fullPage: true,
   });
-  await page.locator("#kanbanMonth").fill("2025-08");
+  await selectMonth(page, "kanbanMonth", "2025-08");
   await assertColumns("2025-08");
   await page.setViewportSize({ width: 390, height: 844 });
   await expect
@@ -219,7 +220,7 @@ test("kanban month filters cards and every stage count while preserving DP Gamba
         .evaluate((el) => el.getBoundingClientRect().right),
     )
     .toBeLessThanOrEqual(0.5);
-  await page.getByRole("button", { name: "Semua bulan", exact: true }).click();
+  await page.getByRole("button", { name: "Reset filter", exact: true }).click();
   await assertColumns();
   expect(
     await page
@@ -240,7 +241,7 @@ test("kanban month counts keep the signed-in sales scope", async ({ page }) => {
     (lead: any) => lead.sales === "Arif",
   );
   await expect(page.locator(".kcard")).toHaveCount(own.length);
-  await page.locator("#kanbanMonth").fill("2026-07");
+  await selectMonth(page, "kanbanMonth", "2026-07");
   await expect(page.locator(".kcard")).toHaveCount(
     own.filter((lead: any) => lead.dateIn.startsWith("2026-07-")).length,
   );

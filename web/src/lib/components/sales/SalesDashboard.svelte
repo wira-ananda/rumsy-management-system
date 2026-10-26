@@ -1,5 +1,7 @@
 <script lang="ts">
   import PageHeader from "../shared/PageHeader.svelte";
+  import PeriodFilter from "../shared/PeriodFilter.svelte";
+  import { matchesDate } from "../../utils/calendar";
   import Card from "../shared/Card.svelte";
   import Stat from "../shared/Stat.svelte";
   import ForecastTable from "./ForecastTable.svelte";
@@ -9,10 +11,9 @@
   import { TODAY, stageNames } from "../../constants/catalog.js";
   import { money } from "../../utils/format.js";
   let month = $state("");
+  let day = $state("");
   let leads = $derived(
-    visibleLeads().filter(
-      (lead: any) => !month || String(lead.dateIn || "").startsWith(month),
-    ),
+    visibleLeads().filter((lead: any) => matchesDate(lead.dateIn, month, day)),
   );
   let reports = $derived(
     runtime.data!.salesDailyReports.filter(
@@ -32,26 +33,15 @@
   <div class="dashboard-filter">
     <div class="filter-caption">
       <b>Ringkasan pipeline</b><span role="status" aria-live="polite"
-        >{leads.length} lead • {month
-          ? "Sesuai bulan masuk"
-          : "Semua bulan"}</span
+        >{leads.length} lead • {day
+          ? "Sesuai tanggal masuk"
+          : month
+            ? "Sesuai bulan masuk"
+            : "Semua bulan"}</span
       >
     </div>
     <div class="filter-controls">
-      <label class="month-filter"
-        ><span>Bulan masuk</span><input
-          class="input"
-          id="salesMonth"
-          type="month"
-          bind:value={month}
-        /></label
-      >
-      <button
-        class="btn ghost reset-month"
-        type="button"
-        onclick={() => (month = "")}
-        disabled={!month}>Semua bulan</button
-      >
+      <PeriodFilter id="sales" bind:month bind:day compact />
     </div>
   </div>
   <div class="stats five sales-stats">
@@ -164,34 +154,6 @@
     gap: 8px;
     flex-shrink: 0;
   }
-  .month-filter {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-  .month-filter > span {
-    font-size: 11px;
-    font-weight: 600;
-    color: var(--slate);
-    white-space: nowrap;
-  }
-  .month-filter .input {
-    width: 160px;
-    height: 38px;
-    min-height: 38px;
-    padding: 7px 10px;
-    border-radius: 10px;
-    font-size: 12px;
-    background: var(--surface);
-  }
-  .reset-month {
-    height: 38px;
-    min-height: 38px;
-    padding: 7px 11px;
-    border-radius: 10px;
-    font-size: 11px;
-    white-space: nowrap;
-  }
   .sales-dashboard :global(.stat),
   .sales-dashboard :global(.card),
   .report-notice {
@@ -251,6 +213,12 @@
     }
   }
   @media (max-width: 700px) {
+    .filter-controls {
+      flex-wrap: wrap;
+    }
+    .filter-controls :global(.period-filter) {
+      flex-basis: 100%;
+    }
     .dashboard-filter {
       align-items: stretch;
       flex-direction: column;
@@ -273,18 +241,6 @@
     .filter-caption {
       justify-content: space-between;
       gap: 6px;
-    }
-    .month-filter {
-      flex: 1;
-      min-width: 0;
-    }
-    .month-filter > span {
-      font-size: 10px;
-    }
-    .month-filter .input {
-      flex: 1;
-      min-width: 0;
-      width: 100%;
     }
     .sales-stats {
       grid-template-columns: minmax(0, 1fr);

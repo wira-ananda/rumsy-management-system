@@ -1,16 +1,16 @@
 <script lang="ts">
   import PageHeader from "../shared/PageHeader.svelte";
+  import PeriodFilter from "../shared/PeriodFilter.svelte";
+  import { matchesDate } from "../../utils/calendar";
   import { visibleLeads } from "../../access/permissions.js";
   import { stageNames, stages } from "../../constants/catalog.js";
   import { nextStageInfo } from "../../domain/pipeline.js";
   import { money, pct } from "../../utils/format.js";
   let month = $state("");
+  let day = $state("");
   let leads = $derived(visibleLeads());
   let filtered = $derived(
-    leads.filter(
-      (lead: any) =>
-        !month || String(lead.dateIn || "").startsWith(month + "-"),
-    ),
+    leads.filter((lead: any) => matchesDate(lead.dateIn, month, day)),
   );
 </script>
 
@@ -29,20 +29,7 @@
     <span class="lead-total" role="status" aria-live="polite"
       >{filtered.length} lead</span
     >
-    <label class="month-filter"
-      ><span>Bulan masuk</span><input
-        class="input"
-        id="kanbanMonth"
-        type="month"
-        bind:value={month}
-      /></label
-    >
-    <button
-      class="btn ghost reset-month"
-      type="button"
-      onclick={() => (month = "")}
-      disabled={!month}>Semua bulan</button
-    >
+    <PeriodFilter id="kanban" bind:month bind:day compact />
   </div>
 </div>
 <div class="kanban-wrap mt">
@@ -126,32 +113,6 @@
     white-space: nowrap;
     font-variant-numeric: tabular-nums;
   }
-  .month-filter {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-  .month-filter > span {
-    font-size: 11px;
-    font-weight: 600;
-    color: var(--slate);
-    white-space: nowrap;
-  }
-  .month-filter .input {
-    width: 157px;
-    min-height: 36px;
-    height: 36px;
-    padding: 6px 9px;
-    font-size: 12px;
-    background: #fff;
-  }
-  .reset-month {
-    min-height: 36px;
-    padding: 7px 10px;
-    font-size: 11px;
-    white-space: nowrap;
-    background: #fff;
-  }
   @media (max-width: 1100px) {
     .kanban-toolbar {
       align-items: stretch;
@@ -178,19 +139,8 @@
       align-items: flex-end;
       gap: 8px;
     }
-    .month-filter {
-      flex: 1;
-      display: block;
-      min-width: 0;
-    }
-    .month-filter > span {
-      display: block;
-      margin-bottom: 4px;
-      font-size: 10px;
-    }
-    .month-filter .input {
-      width: 100%;
-      min-width: 0;
+    .kanban-filters :global(.period-filter) {
+      flex-basis: 100%;
     }
     .lead-total {
       order: 3;

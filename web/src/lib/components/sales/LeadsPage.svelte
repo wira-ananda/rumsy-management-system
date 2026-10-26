@@ -1,5 +1,7 @@
 <script lang="ts">
   import PageHeader from "../shared/PageHeader.svelte";
+  import PeriodFilter from "../shared/PeriodFilter.svelte";
+  import { matchesDate } from "../../utils/calendar";
   import Badge from "../shared/Badge.svelte";
   import {
     visibleLeads,
@@ -14,7 +16,8 @@
   let search = $state(""),
     sales = $state(""),
     stage = $state(""),
-    month = $state("");
+    month = $state(""),
+    day = $state("");
   let leads = $derived(visibleLeads());
   let filtered = $derived(
     leads.filter(
@@ -24,7 +27,7 @@
           .includes(search.toLowerCase()) &&
         (!sales || normSales(lead.sales) === normSales(sales)) &&
         (!stage || lead.stage === stage) &&
-        (!month || String(lead.dateIn || "").startsWith(month)),
+        matchesDate(lead.dateIn, month, day),
     ),
   );
 </script>
@@ -71,21 +74,14 @@
             >{/each}</select
         ></label
       >
-      <label class="field"
-        ><span>BULAN</span><input
-          class="input"
-          id="leadMonth"
-          type="month"
-          bind:value={month}
-        /></label
-      >
+      <PeriodFilter id="lead" bind:month bind:day />
     </div>
   </div>
   <div class="table-wrap">
     <table class="table">
       <thead
         ><tr
-          >{#each ["Client", "Kebutuhan", "Sales", "Est. RAB", "Margin", "DP (%)", "DP (Rp)", "Stage", "Follow-up", "Aksi"] as label}<th
+          >{#each ["Client", "Tgl Masuk", "Kebutuhan", "Sales", "Est. RAB", "Margin", "DP (%)", "DP (Rp)", "Stage", "Follow-up", "Aksi"] as label}<th
               >{label}</th
             >{/each}</tr
         ></thead
@@ -94,7 +90,7 @@
             ><td
               ><a class="link" href={`#/leads/${lead.id}`}>{lead.client}</a>
               <div class="tiny muted">{lead.phone} • {lead.location}</div></td
-            ><td
+            ><td class="nowrap lead-date">{date(lead.dateIn)}</td><td
               >{leadNeedLabel(lead)}{#if lead.tenorYears || lead.collateral}<div
                   class="tiny muted"
                 >
@@ -128,7 +124,7 @@
                   >{/if}
               </div></td
             ></tr
-          >{:else}<tr><td colspan="10" class="empty">Tidak ada data.</td></tr
+          >{:else}<tr><td colspan="11" class="empty">Tidak ada data.</td></tr
           >{/each}
       </tbody>
     </table>

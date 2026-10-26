@@ -6,6 +6,29 @@ export default defineConfig({
   fullyParallel: false,
   workers: 1,
   timeout: 45_000,
+  projects: [
+    { name: "chromium", use: { browserName: "chromium" } },
+    {
+      name: "webkit",
+      testMatch: "**/month-picker.e2e.ts",
+      use: {
+        browserName: "webkit",
+        launchOptions: process.env.PLAYWRIGHT_WEBKIT_EXECUTABLE
+          ? { executablePath: process.env.PLAYWRIGHT_WEBKIT_EXECUTABLE }
+          : {},
+      },
+    },
+    {
+      name: "firefox",
+      testMatch: "**/month-picker.e2e.ts",
+      use: {
+        browserName: "firefox",
+        launchOptions: process.env.PLAYWRIGHT_FIREFOX_EXECUTABLE
+          ? { executablePath: process.env.PLAYWRIGHT_FIREFOX_EXECUTABLE }
+          : {},
+      },
+    },
+  ],
   use: {
     baseURL: "http://127.0.0.1:4175",
     browserName: "chromium",

@@ -1,5 +1,7 @@
 <script lang="ts">
   import PageHeader from "../shared/PageHeader.svelte";
+  import PeriodFilter from "../shared/PeriodFilter.svelte";
+  import { matchesDate } from "../../utils/calendar";
   import Badge from "../shared/Badge.svelte";
   import { visibleLeads } from "../../access/permissions.js";
   import { stageNames } from "../../constants/catalog.js";
@@ -10,7 +12,8 @@
     sales = $state(""),
     source = $state(""),
     stage = $state(""),
-    month = $state("");
+    month = $state(""),
+    day = $state("");
   let leads = $derived(visibleLeads());
   let filtered = $derived(
     leads.filter(
@@ -21,7 +24,7 @@
         (!sales || lead.sales === sales) &&
         (!source || lead.source === source) &&
         (!stage || lead.stage === stage) &&
-        (!month || String(lead.dateIn || "").startsWith(month)),
+        matchesDate(lead.dateIn, month, day),
     ),
   );
 </script>
@@ -33,11 +36,11 @@
 <div class="summary-strip">
   {#each Object.entries(stageNames) as [key, label]}<div class="summary-chip">
       <small>{label}</small><b
-        >{leads.filter((lead: any) => lead.stage === key).length} lead</b
+        >{filtered.filter((lead: any) => lead.stage === key).length} lead</b
       >
       <div class="tiny muted">
         {money(
-          leads
+          filtered
             .filter((lead: any) => lead.stage === key)
             .reduce(
               (sum: number, lead: any) => sum + leadForecastValue(lead),
@@ -81,14 +84,8 @@
               >{label}</option
             >{/each}</select
         ></label
-      ><label class="field"
-        ><span>BULAN</span><input
-          class="input"
-          id="pMonth"
-          type="month"
-          bind:value={month}
-        /></label
       >
+      <PeriodFilter id="p" bind:month bind:day />
     </div>
   </div>
   <div class="scroll-wide">
