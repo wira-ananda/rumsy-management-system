@@ -23,6 +23,7 @@
   import { paymentForm } from "../../features/projects/payments";
   import { money, date, pct } from "../../utils/format.js";
   import type { Route } from "../../types/rms";
+  import { leadDpAmount, leadNeedLabel } from "../../domain/lead-terms";
   let { route }: { route: Route } = $props();
   let lead = $derived(leadById(route.id));
   let project = $derived(lead ? projectForLead(lead.id) : null);
@@ -70,23 +71,34 @@
           value={lead.source}
         /><Info label="Lokasi" value={lead.location} /><Info
           label="Kebutuhan"
-          value={lead.need}
+          value={leadNeedLabel(lead)}
         /><Info label="Sales PIC" value={lead.sales} /><Info
           label="Current Stage"><Badge status={lead.stage} /></Info
         >
       </div></Card
     ><Card title="Commercial Estimation"
       ><div class="grid2eq">
-        <Info label="% DP" value={pct(lead.dp)} /><Info
+        <Info label="Est. RAB" value={money(lead.estRab)} /><Info
           label="% Margin"
           value={pct(lead.margin)}
-        /><Info label="Est. Gambar" value={money(lead.estGambar)} /><Info
-          label="Est. RAB"
-          value={money(lead.estRab)}
+        /><Info label="DP (%)" value={pct(lead.dp)} /><Info
+          label="DP (Rp)"
+          value={money(leadDpAmount(lead))}
         /><Info label="Est. ASST CR" value={money(lead.estAsstCr)} /><Info
           label="Next Follow-up"
           value={date(lead.nextFollowUp)}
         />
+        <Info
+          label="Tenor"
+          value={lead.tenorYears
+            ? `${lead.tenorYears} tahun (${lead.tenorYears * 12} bulan)`
+            : "Belum diisi"}
+        />
+        <Info label="Jaminan" value={lead.collateral || "Belum diisi"} />
+        {#if lead.estGambar}<Info
+            label="Est. Gambar (arsip)"
+            value={money(lead.estGambar)}
+          />{/if}
       </div></Card
     >
   </div>

@@ -10,6 +10,7 @@
   import { stageNames, TODAY } from "../../constants/catalog.js";
   import { leadForm, deleteLead } from "../../features/sales/actions";
   import { date, money, pct } from "../../utils/format.js";
+  import { leadDpAmount, leadNeedLabel } from "../../domain/lead-terms";
   let search = $state(""),
     sales = $state(""),
     stage = $state(""),
@@ -18,7 +19,7 @@
   let filtered = $derived(
     leads.filter(
       (lead: any) =>
-        (lead.client + lead.phone + lead.location)
+        (lead.client + lead.phone + lead.location + leadNeedLabel(lead))
           .toLowerCase()
           .includes(search.toLowerCase()) &&
         (!sales || normSales(lead.sales) === normSales(sales)) &&
@@ -45,7 +46,7 @@
           class="input"
           id="leadSearch"
           bind:value={search}
-          placeholder="Nama client, WA, lokasi..."
+          placeholder="Nama client, WA, lokasi, kebutuhan..."
         /></label
       >
       <label class="field"
@@ -84,7 +85,7 @@
     <table class="table">
       <thead
         ><tr
-          >{#each ["Client", "Kebutuhan", "Sales", "DP", "Margin", "Est. Gambar", "Est. RAB", "Stage", "Follow-up", "Aksi"] as label}<th
+          >{#each ["Client", "Kebutuhan", "Sales", "Est. RAB", "Margin", "DP (%)", "DP (Rp)", "Stage", "Follow-up", "Aksi"] as label}<th
               >{label}</th
             >{/each}</tr
         ></thead
@@ -93,10 +94,21 @@
             ><td
               ><a class="link" href={`#/leads/${lead.id}`}>{lead.client}</a>
               <div class="tiny muted">{lead.phone} • {lead.location}</div></td
-            ><td>{lead.need}</td><td>{lead.sales}</td><td>{pct(lead.dp)}</td><td
+            ><td
+              >{leadNeedLabel(lead)}{#if lead.tenorYears || lead.collateral}<div
+                  class="tiny muted"
+                >
+                  {[
+                    lead.tenorYears ? `${lead.tenorYears} tahun` : null,
+                    lead.collateral,
+                  ]
+                    .filter(Boolean)
+                    .join(" • ")}
+                </div>{/if}</td
+            ><td>{lead.sales}</td><td class="mono">{money(lead.estRab)}</td><td
               >{pct(lead.margin)}</td
-            ><td class="mono">{money(lead.estGambar)}</td><td class="mono"
-              >{money(lead.estRab)}</td
+            ><td>{pct(lead.dp)}</td><td class="mono"
+              >{money(leadDpAmount(lead))}</td
             ><td><Badge status={lead.stage} /></td><td
               >{date(
                 lead.nextFollowUp,

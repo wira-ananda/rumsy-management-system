@@ -5,6 +5,7 @@
   import { stageNames } from "../../constants/catalog.js";
   import { leadForecastValue } from "../../domain/pipeline.js";
   import { date, money, pct } from "../../utils/format.js";
+  import { leadDpAmount, leadNeedLabel } from "../../domain/lead-terms";
   let search = $state(""),
     sales = $state(""),
     source = $state(""),
@@ -14,7 +15,7 @@
   let filtered = $derived(
     leads.filter(
       (lead: any) =>
-        (lead.client + lead.phone + lead.location + lead.need)
+        (lead.client + lead.phone + lead.location + leadNeedLabel(lead))
           .toLowerCase()
           .includes(search.toLowerCase()) &&
         (!sales || lead.sales === sales) &&
@@ -94,7 +95,7 @@
     <table class="table pipeline-table">
       <thead
         ><tr
-          >{#each ["TGL MASUK", "NAMA CLIENT", "NO WA", "SUMBER", "LOKASI", "KEBUTUHAN", "% DP", "% MARGIN", "EST GAMBAR", "EST RAB", "EST ASST CR", "CATATAN", "SALES", "STATUS"] as label}<th
+          >{#each ["TGL MASUK", "NAMA CLIENT", "NO WA", "SUMBER", "LOKASI", "KEBUTUHAN", "EST RAB", "% MARGIN", "% DP", "DP (Rp)", "EST ASST CR", "CATATAN", "SALES", "STATUS"] as label}<th
               >{label}</th
             >{/each}</tr
         ></thead
@@ -103,10 +104,10 @@
             ><td class="sticky-left nowrap">{date(lead.dateIn)}</td><td
               ><a class="link" href={`#/leads/${lead.id}`}>{lead.client}</a></td
             ><td>{lead.phone}</td><td>{lead.source}</td><td>{lead.location}</td
-            ><td>{lead.need}</td><td>{pct(lead.dp)}</td><td
-              >{pct(lead.margin)}</td
-            ><td class="mono right">{money(lead.estGambar)}</td><td
-              class="mono right">{money(lead.estRab)}</td
+            ><td>{leadNeedLabel(lead)}</td><td class="mono right"
+              >{money(lead.estRab)}</td
+            ><td>{pct(lead.margin)}</td><td>{pct(lead.dp)}</td><td
+              class="mono right">{money(leadDpAmount(lead))}</td
             ><td class="mono right">{money(lead.estAsstCr)}</td><td
               >{lead.notes}</td
             ><td>{lead.sales}</td><td><Badge status={lead.stage} /></td></tr
