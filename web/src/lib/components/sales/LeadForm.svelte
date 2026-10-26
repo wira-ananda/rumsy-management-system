@@ -7,12 +7,14 @@
     LEAD_NEEDS,
     COLLATERALS,
     LEAD_MARGIN,
+    MIN_DP,
     DEFAULT_TENOR_YEARS,
     dpRupiah,
     dpPercent,
     leadTermsError,
     leadNeedCategory,
     leadNeedDetail,
+    leadDpAmount,
   } from "../../domain/lead-terms";
   let {
     lead = {},
@@ -38,11 +40,8 @@
       needDetail: leadNeedDetail(lead),
       estRab: Number(lead.estRab) || 0,
       margin: LEAD_MARGIN,
-      dp: Math.max(20, Number(lead.dp ?? 20)),
-      dpAmount: dpRupiah(
-        Number(lead.estRab) || 0,
-        Math.max(20, Number(lead.dp ?? 20)),
-      ),
+      dp: Number(lead.dp ?? MIN_DP),
+      dpAmount: leadDpAmount({ ...lead, dp: lead.dp ?? MIN_DP }),
       tenorYears: lead.tenorYears ?? DEFAULT_TENOR_YEARS,
       collateral: lead.collateral || "",
       estAsstCr: Number(lead.estAsstCr) || 0,
@@ -219,13 +218,14 @@
         class="input"
         name="dp"
         type="number"
-        min="20"
+        min={MIN_DP}
         max="100"
         step="any"
         bind:value={form.dp}
         oninput={syncPercent}
         required
-      /><small class="tiny muted">Minimal 20% dari Est. RAB.</small></label
+      /><small class="tiny muted">Minimal {MIN_DP}% dari Est. RAB.</small
+      ></label
     >
     <label class="field"
       ><span>DP (Rp)</span>

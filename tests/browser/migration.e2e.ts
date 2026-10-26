@@ -273,13 +273,14 @@ test("lead qualification synchronizes DP both ways, validates terms, and preserv
   await form.locator("[name=nextFollowUp]").fill("2026-11-01");
   await form.locator("[name=estRab]").fill("500000000");
   await expect(form.locator("[name=estRab]")).toHaveValue("500.000.000");
-  await expect(form.locator("[name=dpAmount]")).toHaveValue("100.000.000");
+  await expect(form.locator("[name=dp]")).toHaveValue("15");
+  await expect(form.locator("[name=dpAmount]")).toHaveValue("75.000.000");
   await form.locator("[name=estRab]").fill("");
   await expect(form.locator("[name=estRab]")).toHaveValue("");
   await expect(form.locator("[name=dpAmount]")).toBeDisabled();
   await form.locator("[name=estRab]").pressSequentially("500000000");
   await expect(form.locator("[name=estRab]")).toHaveValue("500.000.000");
-  await expect(form.locator("[name=dpAmount]")).toHaveValue("100.000.000");
+  await expect(form.locator("[name=dpAmount]")).toHaveValue("75.000.000");
   await form.locator("[name=dp]").fill("25");
   await expect(form.locator("[name=dpAmount]")).toHaveValue("125.000.000");
   await form.locator("[name=dpAmount]").fill("150000000");
@@ -288,11 +289,18 @@ test("lead qualification synchronizes DP both ways, validates terms, and preserv
   await expect(form.locator("[name=dpAmount]")).toHaveValue("180.000.000");
   await expect(form.locator("[name=margin]")).not.toBeEditable();
   await expect(form.locator("[name=margin]")).toHaveValue("8");
-  await form.locator("[name=dpAmount]").fill("100000000");
+  await form.locator("[name=dpAmount]").fill("80000000");
   expect(
     await form
       .locator("[name=dp]")
       .evaluate((el: HTMLInputElement) => el.validity.rangeUnderflow),
+  ).toBe(true);
+  await form.locator("[name=dpAmount]").fill("90000000");
+  await expect(form.locator("[name=dp]")).toHaveValue("15");
+  expect(
+    await form
+      .locator("[name=dp]")
+      .evaluate((el: HTMLInputElement) => el.checkValidity()),
   ).toBe(true);
   await form.locator("[name=dpAmount]").fill("150000000");
   await expect(form.locator("[name=dp]")).toHaveValue("25");
@@ -380,6 +388,46 @@ test("lead qualification synchronizes DP both ways, validates terms, and preserv
     (p: any) => p.leadId === lead.id,
   );
   expect(linked.contract).toMatchObject({ tenor: 60, dp: 25, margin: 8 });
+});
+
+test("historical DP is not clamped on opening and editing a lead keeps its existing project terms", async ({
+  page,
+}) => {
+  await login(page);
+  const before = await state(page);
+  for (const id of ["LD-003", "LD-004"]) {
+    const old = before.leads.find((lead: any) => lead.id === id);
+    await goto(page, `leads/${id}`);
+    await page.locator("#editLead").click();
+    await expect(page.locator("#leadForm [name=dp]")).toHaveValue(
+      String(old.dp),
+    );
+    await page.locator("#modalClose").click();
+  }
+  expect(await state(page)).toEqual(before);
+  await page.locator("#editLead").click();
+  const form = page.locator("#leadForm");
+  await form.locator("[name=estRab]").fill("1200000000");
+  await expect(form.locator("[name=dp]")).toHaveValue("15");
+  await expect(form.locator("[name=dpAmount]")).toHaveValue("180.000.000");
+  await form.locator("[name=collateral][value=SHM]").check();
+  await form.locator("button.submit").click();
+  await expect(page.locator("#modalBg")).toHaveCount(0);
+  const after = await state(page);
+  expect(after.leads.find((lead: any) => lead.id === "LD-004")).toMatchObject({
+    dp: 15,
+    dpAmount: 180000000,
+    estRab: 1200000000,
+  });
+  for (const old of before.projects) {
+    const current = after.projects.find(
+      (project: any) => project.id === old.id,
+    );
+    expect(current.contract).toEqual(old.contract);
+    expect(current.originalContract).toBe(old.originalContract);
+    expect(current.transactions).toEqual(old.transactions);
+    expect(current.installments).toEqual(old.installments);
+  }
 });
 
 test("legacy need becomes editable Other and its original text and estimate are preserved", async ({

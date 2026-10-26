@@ -20,14 +20,18 @@ test("rupiah and percentage remain consistent for arbitrary amounts, zero RAB an
     need: "Rumah",
   };
   assert.equal(leadTermsError(base), null);
-  for (const amount of [100000000, 123456789, 200000000, 500000000]) {
+  for (const amount of [75000000, 100000000, 123456789, 200000000, 500000000]) {
     const dp = dpPercent(base.estRab, amount);
     assert.equal(dpRupiah(base.estRab, dp), amount);
     assert.equal(leadTermsError({ ...base, dp, dpAmount: amount }), null);
   }
   assert.equal(dpPercent(0, 20), 0);
   assert.equal(leadTermsError({ ...base, estRab: 0, dpAmount: 0 }), null);
-  assert.ok(leadTermsError({ ...base, dp: 19.99, dpAmount: 99950000 }));
+  assert.equal(leadTermsError({ ...base, dp: 15, dpAmount: 75000000 }), null);
+  assert.match(
+    leadTermsError({ ...base, dp: 14.99, dpAmount: 74950000 }),
+    /DP minimal 15%/,
+  );
   assert.ok(leadTermsError({ ...base, estRab: Infinity }));
   assert.ok(leadTermsError({ ...base, dpAmount: NaN }));
   assert.equal(

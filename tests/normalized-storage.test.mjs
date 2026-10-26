@@ -76,7 +76,7 @@ test("lead commercial terms persist in Prisma, reject tampering, and preserve hi
       stage: "WARM",
     };
     for (const invalid of [
-      { dp: 19, dpAmount: 95000000 },
+      { dp: 14, dpAmount: 70000000 },
       { margin: 9 },
       { dpAmount: 1 },
       { tenorYears: 16 },
@@ -116,8 +116,25 @@ test("lead commercial terms persist in Prisma, reject tampering, and preserve hi
     actual.data.leads[0].notes = "Catatan baru pada lead lama";
     assert.equal((await save(f, actual)).status, 200);
     const next = await state(f);
-    next.data.leads.find((l) => l.id === lead.id).margin = 3;
-    assert.equal((await save(f, next)).status, 400);
+    const qualified = next.data.leads.find((l) => l.id === lead.id);
+    qualified.dp = 15;
+    qualified.dpAmount = 75000000;
+    assert.equal((await save(f, next)).status, 200);
+    const minimum = await state(f);
+    assert.equal(minimum.data.leads.find((l) => l.id === lead.id).dp, 15);
+    assert.equal(
+      minimum.data.leads.find((l) => l.id === lead.id).dpAmount,
+      75000000,
+    );
+    for (const old of original.data.projects) {
+      const current = minimum.data.projects.find((p) => p.id === old.id);
+      assert.deepEqual(current.contract, old.contract);
+      assert.equal(current.originalContract, old.originalContract);
+      assert.deepEqual(current.transactions, old.transactions);
+      assert.deepEqual(current.installments, old.installments);
+    }
+    minimum.data.leads.find((l) => l.id === lead.id).margin = 3;
+    assert.equal((await save(f, minimum)).status, 400);
   } finally {
     f.close();
   }

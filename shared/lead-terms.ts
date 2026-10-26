@@ -1,7 +1,7 @@
 export const LEAD_NEEDS = ["Rumah", "Bisnis", "Sekolah", "Other"] as const;
 export const COLLATERALS = ["SHM", "Non-SHM"] as const;
 export const LEAD_MARGIN = 8;
-export const MIN_DP = 20;
+export const MIN_DP = 15;
 export const DEFAULT_TENOR_YEARS = 3;
 
 export function dpRupiah(rab: number, percent: number): number {
@@ -45,7 +45,7 @@ export function leadTermsError(lead: any, previous?: any): string | null {
   )
     return "Estimasi RAB harus berupa nominal rupiah yang valid.";
   if (!Number.isFinite(lead.dp) || lead.dp < MIN_DP - 1e-9 || lead.dp > 100)
-    return "DP minimal 20% dan maksimal 100% dari Est. RAB.";
+    return `DP minimal ${MIN_DP}% dan maksimal 100% dari Est. RAB.`;
   if (lead.margin !== LEAD_MARGIN) return "Margin harus tetap 8%.";
   if (!Number.isSafeInteger(lead.dpAmount) || lead.dpAmount < 0)
     return "Nominal DP harus berupa rupiah utuh yang valid.";
