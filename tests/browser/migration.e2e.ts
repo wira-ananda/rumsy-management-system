@@ -101,6 +101,7 @@ test("lead forms, qualification, chat and save payload keep original behavior", 
   await form.locator("[name=client]").fill("Klien Migrasi");
   await form.locator("[name=phone]").fill("081234000000");
   await form.locator("[name=location]").fill("Makassar");
+  await form.locator("[name=collateral][value=SHM]").check();
   await form.locator("[name=estRab]").fill("250000000");
   await form.locator("[name=estAsstCr]").fill("300000000");
   await form.locator("[name=sales]").selectOption({ label: "Arif" });
@@ -135,6 +136,287 @@ test("lead forms, qualification, chat and save payload keep original behavior", 
   expect(lead.stage).toBe("HOT");
   expect(lead.estRab).toBe(250000000);
   expect(saved.projects).toHaveLength(3);
+});
+
+test("kanban month filters cards and every stage count while preserving DP Gambar", async ({
+  page,
+}) => {
+  await login(page);
+  await goto(page, "kanban");
+  const initial = await state(page);
+  const stages = [
+    "WARM",
+    "HOT",
+    "DP_GAMBAR",
+    "DP_PROYEK",
+    "PEMBANGUNAN",
+    "SELESAI",
+    "HOLD_BATAL",
+  ];
+  // Preserve the existing displayed pipeline placement (including legacy demo
+  // stages); a month filter must never recompute or move cards between stages.
+  const placements = new Map<string, string>();
+  for (const stage of stages) {
+    const links = await page
+      .locator(`.kcol[data-stage="${stage}"] .kcard a`)
+      .evaluateAll((elements) =>
+        elements.map((element) =>
+          element.getAttribute("href")!.split("/").at(-1)!,
+        ),
+      );
+    for (const id of links) placements.set(id, stage);
+  }
+  async function assertColumns(month = "") {
+    const expected = initial.leads.filter(
+      (lead: any) =>
+        !month || String(lead.dateIn || "").startsWith(month + "-"),
+    );
+    await expect(page.locator(".kcol")).toHaveCount(7);
+    await expect(page.locator(".kcard")).toHaveCount(expected.length);
+    for (const stage of stages) {
+      const column = page.locator(`.kcol[data-stage="${stage}"]`);
+      const leads = expected.filter(
+        (lead: any) => placements.get(lead.id) === stage,
+      );
+      await expect(column.locator(".khead span").last()).toHaveText(
+        String(leads.length),
+      );
+      await expect(column.locator(".kcard")).toHaveCount(leads.length);
+      for (const lead of leads)
+        await expect(
+          column.getByText(lead.client, { exact: true }),
+        ).toBeVisible();
+    }
+    await expect(
+      page.locator(".kcol[data-stage=DP_GAMBAR] .khead"),
+    ).toContainText("DP Gambar");
+  }
+  await assertColumns();
+  await page.locator("#kanbanMonth").fill("2026-07");
+  await assertColumns("2026-07");
+  await page.locator("#kanbanMonth").fill("2026-08");
+  await assertColumns("2026-08");
+  expect(
+    await page.locator(".kcol[data-stage=DP_GAMBAR] .kcard").count(),
+  ).toBeGreaterThan(0);
+  const compact = await page.locator(".kanban-toolbar").boundingBox();
+  const note = await page.locator(".kanban-note").boundingBox();
+  const filters = await page.locator(".kanban-filters").boundingBox();
+  expect(compact!.height).toBeLessThan(100);
+  expect(filters!.x).toBeGreaterThan(note!.x);
+  expect(Math.abs(filters!.y - note!.y)).toBeLessThan(25);
+  await page.screenshot({
+    path: "test-results/kanban-month-desktop.png",
+    fullPage: true,
+  });
+  await page.locator("#kanbanMonth").fill("2025-08");
+  await assertColumns("2025-08");
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect
+    .poll(() =>
+      page
+        .locator("#sidebar")
+        .evaluate((el) => el.getBoundingClientRect().right),
+    )
+    .toBeLessThanOrEqual(0.5);
+  await page.getByRole("button", { name: "Semua bulan", exact: true }).click();
+  await assertColumns();
+  expect(
+    await page
+      .locator(".kanban-toolbar")
+      .evaluate((el) => el.scrollWidth <= el.clientWidth),
+  ).toBe(true);
+  await page.screenshot({
+    path: "test-results/kanban-month-mobile.png",
+    fullPage: true,
+  });
+  expect(await state(page)).toEqual(initial);
+});
+
+test("kanban month counts keep the signed-in sales scope", async ({ page }) => {
+  await login(page, "arif");
+  await goto(page, "kanban");
+  const own = (await state(page)).leads.filter(
+    (lead: any) => lead.sales === "Arif",
+  );
+  await expect(page.locator(".kcard")).toHaveCount(own.length);
+  await page.locator("#kanbanMonth").fill("2026-07");
+  await expect(page.locator(".kcard")).toHaveCount(
+    own.filter((lead: any) => lead.dateIn.startsWith("2026-07-")).length,
+  );
+  for (const count of await page
+    .locator(".khead span:last-child")
+    .allTextContents())
+    expect(count).toBe("0");
+});
+
+test("lead qualification synchronizes DP both ways, validates terms, and preserves edits on mobile", async ({
+  page,
+}) => {
+  await login(page);
+  await goto(page, "leads");
+  await page.locator("#addLead").click();
+  const form = page.locator("#leadForm");
+  await expect(form.locator("select[name=need] option")).toHaveText([
+    "Rumah",
+    "Bisnis",
+    "Sekolah",
+    "Other",
+  ]);
+  await form.locator("[name=source]").selectOption("WhatsApp");
+  await form.locator("[name=need]").selectOption("Other");
+  await form.locator("[name=needDetail]").fill("Klinik");
+  await form.locator("[name=client]").fill("Uji Kualifikasi");
+  await form.locator("[name=phone]").fill("081234567890");
+  await form.locator("[name=location]").fill("Makassar");
+  await expect(form.locator("[name=dpAmount]")).toBeDisabled();
+  await form.locator("[name=nextFollowUp]").fill("2026-11-01");
+  await form.locator("[name=estRab]").fill("500000000");
+  await expect(form.locator("[name=estRab]")).toHaveValue("500.000.000");
+  await expect(form.locator("[name=dpAmount]")).toHaveValue("100.000.000");
+  await form.locator("[name=estRab]").fill("");
+  await expect(form.locator("[name=estRab]")).toHaveValue("");
+  await expect(form.locator("[name=dpAmount]")).toBeDisabled();
+  await form.locator("[name=estRab]").pressSequentially("500000000");
+  await expect(form.locator("[name=estRab]")).toHaveValue("500.000.000");
+  await expect(form.locator("[name=dpAmount]")).toHaveValue("100.000.000");
+  await form.locator("[name=dp]").fill("25");
+  await expect(form.locator("[name=dpAmount]")).toHaveValue("125.000.000");
+  await form.locator("[name=dpAmount]").fill("150000000");
+  await expect(form.locator("[name=dp]")).toHaveValue("30");
+  await form.locator("[name=estRab]").fill("600000000");
+  await expect(form.locator("[name=dpAmount]")).toHaveValue("180.000.000");
+  await expect(form.locator("[name=margin]")).not.toBeEditable();
+  await expect(form.locator("[name=margin]")).toHaveValue("8");
+  await form.locator("[name=dpAmount]").fill("100000000");
+  expect(
+    await form
+      .locator("[name=dp]")
+      .evaluate((el: HTMLInputElement) => el.validity.rangeUnderflow),
+  ).toBe(true);
+  await form.locator("[name=dpAmount]").fill("150000000");
+  await expect(form.locator("[name=dp]")).toHaveValue("25");
+  const slider = form.getByRole("slider");
+  await slider.focus();
+  await slider.press("Home");
+  await slider.press("ArrowRight");
+  await expect(form.locator("[name=tenorYears]")).toHaveValue("2");
+  await form.locator("[name=tenorYears]").fill("5");
+  await expect(slider).toHaveValue("5");
+  await expect(form).toContainText("Setara 60 bulan");
+  await form.locator("[name=collateral][value='Non-SHM']").check();
+  await page.screenshot({
+    path: "test-results/lead-form-desktop.png",
+    fullPage: true,
+  });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect(form.locator("[name=dpAmount]")).toHaveValue("150.000.000");
+  expect(
+    await page
+      .locator(".modal")
+      .evaluate((el) => el.scrollWidth <= el.clientWidth),
+  ).toBe(true);
+  await page.screenshot({
+    path: "test-results/lead-form-mobile.png",
+    fullPage: true,
+  });
+  // A rejected save stays open and can be retried without losing the input.
+  await page.route("**/api/state", async (route) => {
+    if (route.request().method() === "PUT")
+      await route.fulfill({
+        status: 400,
+        contentType: "application/json",
+        body: JSON.stringify({
+          error: "LEAD_VALIDATION",
+          message: "Uji gagal simpan",
+        }),
+      });
+    else await route.continue();
+  });
+  await form.locator("button[type=submit], button.submit").click();
+  await expect(form.getByRole("alert")).toHaveText("Uji gagal simpan");
+  await expect(form.locator("[name=dpAmount]")).toHaveValue("150.000.000");
+  await page.unroute("**/api/state");
+  await form.locator("button.submit").click();
+  await expect(page.locator("#modalBg")).toHaveCount(0);
+  await page.reload();
+  const saved = await state(page);
+  const lead = saved.leads.find((l: any) => l.client === "Uji Kualifikasi");
+  await page.locator("#leadSearch").fill("Klinik");
+  await expect(page.locator("#leadRows tr")).toHaveCount(1);
+  await expect(page.locator("#leadRows")).toContainText("Uji Kualifikasi");
+  expect(
+    saved.leads.filter((l: any) => l.client === "Uji Kualifikasi"),
+  ).toHaveLength(1);
+  expect(lead).toMatchObject({
+    source: "WhatsApp",
+    need: "Other",
+    needDetail: "Klinik",
+    estRab: 600000000,
+    margin: 8,
+    dp: 25,
+    dpAmount: 150000000,
+    tenorYears: 5,
+    collateral: "Non-SHM",
+  });
+  await goto(page, `leads/${lead.id}`);
+  await page.locator("#editLead").click();
+  await expect(page.locator("#leadForm [name=tenorYears]")).toHaveValue("5");
+  await expect(page.locator("#leadForm [name=dpAmount]")).toHaveValue(
+    "150.000.000",
+  );
+  await page.locator("#modalClose").click();
+  await page.locator("#addMilestone").click();
+  await page.locator("#mileForm button").click();
+  await expect(page.locator(".stage-step.current")).toHaveText("Hot");
+  await page.locator(".payFromLead").first().click();
+  await page.locator("#payForm [name=amount]").fill("150000000");
+  await page
+    .locator("#payForm [name=proof]")
+    .setInputFiles(photo("qualification-dp.png"));
+  await page.locator("#payForm button").click();
+  await expect(page.locator("#modalBg")).toHaveCount(0);
+  const linked = (await state(page)).projects.find(
+    (p: any) => p.leadId === lead.id,
+  );
+  expect(linked.contract).toMatchObject({ tenor: 60, dp: 25, margin: 8 });
+});
+
+test("legacy need becomes editable Other and its original text and estimate are preserved", async ({
+  page,
+}) => {
+  await login(page);
+  const before = await state(page);
+  const old = before.leads.find((lead: any) => lead.id === "LD-001");
+  await goto(page, "leads/LD-001");
+  await page.locator("#editLead").click();
+  const form = page.locator("#leadForm");
+  await expect(form.locator("select[name=need] option")).toHaveText([
+    "Rumah",
+    "Bisnis",
+    "Sekolah",
+    "Other",
+  ]);
+  await expect(form.locator("[name=need]")).toHaveValue("Other");
+  await expect(form.locator("[name=needDetail]")).toHaveValue(old.need);
+  expect((await state(page)).leads.find((l: any) => l.id === old.id).need).toBe(
+    old.need,
+  );
+  await form.locator("[name=collateral][value=SHM]").check();
+  await form.locator("button.submit").click();
+  await expect(page.locator("#modalBg")).toHaveCount(0);
+  await page.reload();
+  const actual = (await state(page)).leads.find((l: any) => l.id === old.id);
+  expect(actual.need).toBe("Other");
+  expect(actual.needDetail).toBe(old.need);
+  expect(actual.estGambar).toBe(old.estGambar);
+  await page.locator("#editLead").click();
+  await page.locator("#leadForm [name=needDetail]").fill("");
+  await page.locator("#leadForm button.submit").click();
+  await expect(page.locator("#modalBg")).toHaveCount(0);
+  expect(
+    (await state(page)).leads.find((l: any) => l.id === old.id),
+  ).toMatchObject({ need: "Other", needDetail: "" });
 });
 
 test("file uploads, payment verification, project documents and report photos work", async ({

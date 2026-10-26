@@ -106,6 +106,8 @@ Untuk mencoba salinan data asli hasil migrasi, jalankan `bun run dev:data`, lalu
 
 ## Pengujian
 
+Perubahan form lead 26 Oktober (WhatsApp, Other/data lama, DP dua arah, tenor, jaminan dan migrasi kolom tambahan) dijelaskan di [LEAD-QUALIFICATION.md](./LEAD-QUALIFICATION.md). Migrasi tambahan harus diterapkan sebelum deploy kode baru ke produksi; perintah deploy memeriksa kesiapan kolomnya.
+
 ```sh
 bun run check
 bun run test
